@@ -1,0 +1,81 @@
+// This is your Prisma schema file
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Freelancer ──────────────────────────────────────────────────────────────
+model User {
+  id            String   @id @default(uuid())
+  email         String   @unique
+  password      String
+  name          String
+  cpf           String   @unique  // imutável após criação (RN.08)
+  phone         String?
+  avatarUrl     String?
+  isActive      Boolean  @default(true)
+  isBlocked     Boolean  @default(false)
+  loginAttempts Int      @default(0)   // controle de tentativas (RN.02 login)
+  blockedUntil  DateTime?              // bloqueio temporário após 5 tentativas
+
+  refreshTokens UserRefreshToken[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("users")
+}
+
+// ─── Empresa / Anunciante ─────────────────────────────────────────────────────
+model Company {
+  id            String   @id @default(uuid())
+  email         String   @unique
+  password      String
+  name          String
+  cnpj          String   @unique  // imutável após criação (RN.08)
+  phone         String?
+  avatarUrl     String?
+  isActive      Boolean  @default(true)
+  isBlocked     Boolean  @default(false)
+  loginAttempts Int      @default(0)
+  blockedUntil  DateTime?
+
+  refreshTokens CompanyRefreshToken[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("companies")
+}
+
+// ─── Refresh Tokens ───────────────────────────────────────────────────────────
+// Armazenados no banco para permitir revogação explícita (logout / rotate)
+
+model UserRefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@map("user_refresh_tokens")
+}
+
+model CompanyRefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  companyId String
+  company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([companyId])
+  @@map("company_refresh_tokens")
+}
