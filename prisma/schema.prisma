@@ -5,8 +5,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 // ─── Freelancer ──────────────────────────────────────────────────────────────
@@ -15,13 +16,13 @@ model User {
   email         String   @unique
   password      String
   name          String
-  cpf           String   @unique  // imutável após criação (RN.08)
+  cpf           String   @unique
   phone         String?
   avatarUrl     String?
   isActive      Boolean  @default(true)
   isBlocked     Boolean  @default(false)
-  loginAttempts Int      @default(0)   // controle de tentativas (RN.02 login)
-  blockedUntil  DateTime?              // bloqueio temporário após 5 tentativas
+  loginAttempts Int      @default(0)
+  blockedUntil  DateTime?
 
   refreshTokens UserRefreshToken[]
 
@@ -37,7 +38,7 @@ model Company {
   email         String   @unique
   password      String
   name          String
-  cnpj          String   @unique  // imutável após criação (RN.08)
+  cnpj          String   @unique
   phone         String?
   avatarUrl     String?
   isActive      Boolean  @default(true)
@@ -54,7 +55,6 @@ model Company {
 }
 
 // ─── Refresh Tokens ───────────────────────────────────────────────────────────
-// Armazenados no banco para permitir revogação explícita (logout / rotate)
 
 model UserRefreshToken {
   id        String   @id @default(uuid())

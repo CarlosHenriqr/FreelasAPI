@@ -13,6 +13,8 @@ pnpm-debug.log*
 dist/
 build/
 coverage/
+src/**/*.js
+src/**/*.js.map
 
 # =========================
 # TypeScript

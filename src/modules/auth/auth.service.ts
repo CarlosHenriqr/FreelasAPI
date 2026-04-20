@@ -317,14 +317,9 @@ export async function refreshTokens(dto: RefreshTokenDTO): Promise<AuthTokens> {
 // ─── Logout ───────────────────────────────────────────────────────────────────
 
 export async function logout(dto: LogoutDTO): Promise<void> {
-  // Tenta revogar em ambas as tabelas — silenciosamente se não existir
-  await prisma.userRefreshToken
-    .delete({ where: { token: dto.refreshToken } })
-    .catch(() => null);
-
-  await prisma.companyRefreshToken
-    .delete({ where: { token: dto.refreshToken } })
-    .catch(() => null);
+  // Revoga em ambas as tabelas sem erro quando o token não existe
+  await prisma.userRefreshToken.deleteMany({ where: { token: dto.refreshToken } });
+  await prisma.companyRefreshToken.deleteMany({ where: { token: dto.refreshToken } });
 }
 
 // ─── Helpers privados ─────────────────────────────────────────────────────────
