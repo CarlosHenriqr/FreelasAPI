@@ -3,6 +3,8 @@ import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 
 import authRoutes from './modules/auth/auth.routes';
+import profileRoutes from './modules/profile/profile.routes';
+import technologyRoutes from './modules/technologies/technology.routes';
 import { errorHandler } from './middlewares/errorHandler.middleware';
 1
 const app = express();
@@ -33,6 +35,8 @@ app.use(express.urlencoded({ extended: true, limit: '64kb' }));
 
 // ─── Rotas ────────────────────────────────────────────────────────────────────
 app.use('/auth', authRoutes);
+app.use('/profile', profileRoutes);
+app.use('/technologies', technologyRoutes);
 
 // Health check simples
 app.get('/health', (_req, res) => {
