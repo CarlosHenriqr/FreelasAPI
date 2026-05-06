@@ -1,11 +1,16 @@
 import { prisma } from '../../config/database';
 import { AppError } from '../../middlewares/errorHandler.middleware';
 import { sanitizeString } from '../../utils/sanitize.util';
+import bcrypt from 'bcryptjs';
+import { env } from '../../config/env';
 import type {
   UpdateUserProfileDTO,
   UpdateUserResumeDTO,
   UpdateTechStackDTO,
   UpdateCompanyProfileDTO,
+  ChangePasswordDTO,
+  ExperienceDTO,
+  PortfolioItemDTO,
 } from './profile.schema';
 
 export async function getUserProfile(userId: string) {
@@ -18,11 +23,18 @@ export async function getUserProfile(userId: string) {
       phone: true,
       avatarUrl: true,
       resumeUrl: true,
+      bio: true,
       cpf: true,
       isActive: true,
       createdAt: true,
       updatedAt: true,
       techStack: { include: { technology: true } },
+      experiences: {
+        orderBy: { startDate: 'desc' },
+      },
+      portfolio: {
+        orderBy: { createdAt: 'desc' },
+      },
     },
   });
 
@@ -30,7 +42,10 @@ export async function getUserProfile(userId: string) {
     throw new AppError(404, 'Usuário não encontrado.', 'USER_NOT_FOUND');
   }
 
-  return user;
+  return {
+    ...user,
+    cpf: user.cpf ? user.cpf.replace(/^(\d{3})\d{6}(\d{2})$/, '$1******$2') : user.cpf,
+  };
 }
 
 export async function updateUserProfile(userId: string, dto: UpdateUserProfileDTO) {
@@ -39,6 +54,7 @@ export async function updateUserProfile(userId: string, dto: UpdateUserProfileDT
   if (dto.name !== undefined) data.name = sanitizeString(dto.name);
   if (dto.phone !== undefined) data.phone = dto.phone || null;
   if (dto.avatarUrl !== undefined) data.avatarUrl = dto.avatarUrl || null;
+  if ((dto as { bio?: string }).bio !== undefined) data.bio = sanitizeString((dto as { bio?: string }).bio ?? '') || null;
 
   if (Object.keys(data).length === 0) {
     throw new AppError(422, 'Nenhum campo para atualizar.', 'NO_FIELDS_TO_UPDATE');
@@ -54,12 +70,135 @@ export async function updateUserProfile(userId: string, dto: UpdateUserProfileDT
       phone: true,
       avatarUrl: true,
       resumeUrl: true,
+      bio: true,
       isActive: true,
       updatedAt: true,
     },
   });
 
   return updated;
+}
+
+export async function listExperiences(userId: string) {
+  const items = await prisma.userExperience.findMany({
+    where: { userId },
+    orderBy: { startDate: 'desc' },
+  });
+  return items;
+}
+
+export async function createExperience(userId: string, dto: ExperienceDTO) {
+  const item = await prisma.userExperience.create({
+    data: {
+      userId,
+      companyName: sanitizeString(dto.companyName),
+      roleTitle: dto.roleTitle ? sanitizeString(dto.roleTitle) : null,
+      startDate: dto.startDate,
+      endDate: dto.endDate ?? null,
+      description: dto.description ? sanitizeString(dto.description) : null,
+    },
+  });
+  return item;
+}
+
+export async function updateExperience(userId: string, experienceId: string, dto: ExperienceDTO) {
+  const existing = await prisma.userExperience.findUnique({
+    where: { id: experienceId },
+    select: { userId: true },
+  });
+  if (!existing) {
+    throw new AppError(404, 'Experiência não encontrada.', 'EXPERIENCE_NOT_FOUND');
+  }
+  if (existing.userId !== userId) {
+    throw new AppError(403, 'Acesso negado.', 'FORBIDDEN');
+  }
+
+  const item = await prisma.userExperience.update({
+    where: { id: experienceId },
+    data: {
+      companyName: sanitizeString(dto.companyName),
+      roleTitle: dto.roleTitle ? sanitizeString(dto.roleTitle) : null,
+      startDate: dto.startDate,
+      endDate: dto.endDate ?? null,
+      description: dto.description ? sanitizeString(dto.description) : null,
+    },
+  });
+  return item;
+}
+
+export async function deleteExperience(userId: string, experienceId: string): Promise<void> {
+  const existing = await prisma.userExperience.findUnique({
+    where: { id: experienceId },
+    select: { userId: true },
+  });
+  if (!existing) {
+    throw new AppError(404, 'Experiência não encontrada.', 'EXPERIENCE_NOT_FOUND');
+  }
+  if (existing.userId !== userId) {
+    throw new AppError(403, 'Acesso negado.', 'FORBIDDEN');
+  }
+
+  await prisma.userExperience.delete({ where: { id: experienceId } });
+}
+
+export async function listPortfolio(userId: string) {
+  const items = await prisma.userPortfolioItem.findMany({
+    where: { userId },
+    orderBy: { createdAt: 'desc' },
+  });
+  return items;
+}
+
+export async function createPortfolioItem(userId: string, dto: PortfolioItemDTO) {
+  const item = await prisma.userPortfolioItem.create({
+    data: {
+      userId,
+      title: sanitizeString(dto.title),
+      url: dto.url,
+      description: dto.description ? sanitizeString(dto.description) : null,
+      imageUrl: dto.imageUrl ?? null,
+    },
+  });
+  return item;
+}
+
+export async function updatePortfolioItem(userId: string, itemId: string, dto: PortfolioItemDTO) {
+  const existing = await prisma.userPortfolioItem.findUnique({
+    where: { id: itemId },
+    select: { userId: true },
+  });
+  if (!existing) {
+    throw new AppError(404, 'Item de portfólio não encontrado.', 'PORTFOLIO_ITEM_NOT_FOUND');
+  }
+  if (existing.userId !== userId) {
+    throw new AppError(403, 'Acesso negado.', 'FORBIDDEN');
+  }
+
+  const item = await prisma.userPortfolioItem.update({
+    where: { id: itemId },
+    data: {
+      title: sanitizeString(dto.title),
+      url: dto.url,
+      description: dto.description ? sanitizeString(dto.description) : null,
+      imageUrl: dto.imageUrl ?? null,
+    },
+  });
+  return item;
+}
+
+export async function deletePortfolioItem(userId: string, itemId: string): Promise<void> {
+  const existing = await prisma.userPortfolioItem.findUnique({
+    where: { id: itemId },
+    select: { userId: true },
+  });
+  if (!existing) {
+    throw new AppError(404, 'Item de portfólio não encontrado.', 'PORTFOLIO_ITEM_NOT_FOUND');
+  }
+  if (existing.userId !== userId) {
+    throw new AppError(403, 'Acesso negado.', 'FORBIDDEN');
+  }
+
+  await prisma.userPortfolioItem.delete({ where: { id: itemId } });
 }
 
 export async function updateUserResume(userId: string, dto: UpdateUserResumeDTO) {
@@ -137,7 +276,10 @@ export async function getCompanyProfile(companyId: string) {
     throw new AppError(404, 'Empresa não encontrada.', 'COMPANY_NOT_FOUND');
   }
 
-  return company;
+  return {
+    ...company,
+    cnpj: company.cnpj ? company.cnpj.replace(/^(\d{2})\d{10}(\d{2})$/, '$1**********$2') : company.cnpj,
+  };
 }
 
 export async function updateCompanyProfile(companyId: string, dto: UpdateCompanyProfileDTO) {
@@ -166,4 +308,50 @@ export async function updateCompanyProfile(companyId: string, dto: UpdateCompany
   });
 
   return updated;
+}
+
+export async function changeUserPassword(userId: string, dto: ChangePasswordDTO): Promise<void> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { password: true },
+  });
+
+  if (!user) {
+    throw new AppError(404, 'Usuário não encontrado.', 'USER_NOT_FOUND');
+  }
+
+  const ok = await bcrypt.compare(dto.currentPassword, user.password);
+  if (!ok) {
+    throw new AppError(401, 'Senha atual incorreta.', 'INVALID_CURRENT_PASSWORD');
+  }
+
+  const hashed = await bcrypt.hash(dto.newPassword, env.BCRYPT_SALT_ROUNDS);
+
+  await prisma.user.update({
+    where: { id: userId },
+    data: { password: hashed },
+  });
+}
+
+export async function changeCompanyPassword(companyId: string, dto: ChangePasswordDTO): Promise<void> {
+  const company = await prisma.company.findUnique({
+    where: { id: companyId },
+    select: { password: true },
+  });
+
+  if (!company) {
+    throw new AppError(404, 'Empresa não encontrada.', 'COMPANY_NOT_FOUND');
+  }
+
+  const ok = await bcrypt.compare(dto.currentPassword, company.password);
+  if (!ok) {
+    throw new AppError(401, 'Senha atual incorreta.', 'INVALID_CURRENT_PASSWORD');
+  }
+
+  const hashed = await bcrypt.hash(dto.newPassword, env.BCRYPT_SALT_ROUNDS);
+
+  await prisma.company.update({
+    where: { id: companyId },
+    data: { password: hashed },
+  });
 }

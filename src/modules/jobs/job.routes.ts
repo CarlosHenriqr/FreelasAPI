@@ -1,0 +1,37 @@
+import { Router } from 'express';
+import { authenticate, requireType } from '../../middlewares/auth.middleware';
+import * as JobController from './job.controller';
+
+const router = Router();
+
+// GET /vagas?search=...&active=true|false
+router.get('/', JobController.listJobs);
+
+// POST /vagas (somente empresa)
+router.post('/', authenticate, requireType('company'), JobController.createJob);
+
+// GET /vagas/:id
+router.get('/:id', JobController.getJob);
+
+// PUT /vagas/:id (somente empresa)
+router.put('/:id', authenticate, requireType('company'), JobController.updateJob);
+
+// DELETE /vagas/:id (somente empresa)
+router.delete('/:id', authenticate, requireType('company'), JobController.deleteJob);
+
+// POST /vagas/:id/apply (somente usuário)
+router.post('/:id/apply', authenticate, requireType('user'), JobController.applyToJob);
+
+// GET /vagas/:id/applications (somente empresa)
+router.get('/:id/applications', authenticate, requireType('company'), JobController.getJobApplications);
+
+// GET /vagas/:id/candidates (somente empresa)
+router.get('/:id/candidates', authenticate, requireType('company'), JobController.getJobCandidates);
+
+// GET /vagas/:id/messages (somente empresa)
+router.get('/:id/messages', authenticate, requireType('company'), JobController.getJobMessages);
+
+
+
+export default router;
+

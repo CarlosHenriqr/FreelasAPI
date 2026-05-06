@@ -5,8 +5,9 @@ import rateLimit from 'express-rate-limit';
 import authRoutes from './modules/auth/auth.routes';
 import profileRoutes from './modules/profile/profile.routes';
 import technologyRoutes from './modules/technologies/technology.routes';
+import jobRoutes from './modules/jobs/job.routes';
 import { errorHandler } from './middlewares/errorHandler.middleware';
-1
+
 const app = express();
 
 // ─── Segurança de headers HTTP (RNF02) ────────────────────────────────────────
@@ -37,6 +38,7 @@ app.use(express.urlencoded({ extended: true, limit: '64kb' }));
 app.use('/auth', authRoutes);
 app.use('/profile', profileRoutes);
 app.use('/technologies', technologyRoutes);
+app.use('/vagas', jobRoutes);
 
 // Health check simples
 app.get('/health', (_req, res) => {

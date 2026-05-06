@@ -39,7 +39,16 @@ export function errorHandler(
   }
 
   // ─── Erros inesperados ────────────────────────────────────────────────────
-  console.error('[UNHANDLED ERROR]', err);
+  // Em produção, evita logar objetos inteiros (podem conter payloads/PII).
+  if (process.env.NODE_ENV !== 'production') {
+    console.error('[UNHANDLED ERROR]', err);
+  } else {
+    const safe =
+      err instanceof Error
+        ? { name: err.name, message: err.message }
+        : { message: 'Unknown error' };
+    console.error('[UNHANDLED ERROR]', safe);
+  }
   res.status(500).json({
     status: 'error',
     message: 'Erro interno do servidor. Tente novamente mais tarde.',
