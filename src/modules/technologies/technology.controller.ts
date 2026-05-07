@@ -25,3 +25,17 @@ export async function createTechnology(req: Request, res: Response, next: NextFu
     next(err);
   }
 }
+
+export async function seedDefaultTechnologies(_req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const technologies = await TechnologyService.seedDefaultTechnologies();
+
+    res.status(200).json({
+      status: 'success',
+      message: 'Catálogo padrão de tecnologias sincronizado com sucesso.',
+      data: technologies,
+    });
+  } catch (err) {
+    next(err);
+  }
+}

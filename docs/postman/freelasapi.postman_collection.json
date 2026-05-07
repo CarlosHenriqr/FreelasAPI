@@ -1,0 +1,348 @@
+{
+  "info": {
+    "name": "FreelasAPI MVP",
+    "_postman_id": "8d76a459-4e4c-4fb6-918a-bf6e3b0ed911",
+    "description": "Collection para testes do MVP da FreelasAPI (auth, perfil, tecnologias, vagas e candidaturas com skills/stacks).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3333" },
+    { "key": "userEmail", "value": "ana.freela@example.com" },
+    { "key": "userPassword", "value": "SenhaForte123!" },
+    { "key": "companyEmail", "value": "rh@acme.com" },
+    { "key": "companyPassword", "value": "SenhaForte123!" },
+    { "key": "userAccessToken", "value": "" },
+    { "key": "userRefreshToken", "value": "" },
+    { "key": "companyAccessToken", "value": "" },
+    { "key": "companyRefreshToken", "value": "" },
+    { "key": "jobId", "value": "" },
+    { "key": "techIdNode", "value": "" },
+    { "key": "techIdTypeScript", "value": "" },
+    { "key": "techIdPostgreSQL", "value": "" },
+    { "key": "techIdDocker", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "GET /health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["health"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "POST /auth/register/user",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Ana Freelancer\",\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"{{userPassword}}\",\n  \"cpf\": \"52998224725\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/register/user",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "register", "user"]
+            }
+          }
+        },
+        {
+          "name": "POST /auth/register/company",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Acme Tech\",\n  \"email\": \"{{companyEmail}}\",\n  \"password\": \"{{companyPassword}}\",\n  \"cnpj\": \"12345678000195\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/register/company",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "register", "company"]
+            }
+          }
+        },
+        {
+          "name": "POST /auth/login (user)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json?.data?.accessToken) pm.collectionVariables.set('userAccessToken', json.data.accessToken);",
+                  "if (json?.data?.refreshToken) pm.collectionVariables.set('userRefreshToken', json.data.refreshToken);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"{{userPassword}}\",\n  \"type\": \"user\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "POST /auth/login (company)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json?.data?.accessToken) pm.collectionVariables.set('companyAccessToken', json.data.accessToken);",
+                  "if (json?.data?.refreshToken) pm.collectionVariables.set('companyRefreshToken', json.data.refreshToken);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{companyEmail}}\",\n  \"password\": \"{{companyPassword}}\",\n  \"type\": \"company\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Tecnologias",
+      "item": [
+        {
+          "name": "POST /technologies/seed-defaults",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{companyAccessToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/technologies/seed-defaults",
+              "host": ["{{baseUrl}}"],
+              "path": ["technologies", "seed-defaults"]
+            }
+          }
+        },
+        {
+          "name": "GET /technologies",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "const list = json?.data || [];",
+                  "const byName = (n) => list.find((t) => t.name === n)?.id || '';",
+                  "pm.collectionVariables.set('techIdNode', byName('Node.js'));",
+                  "pm.collectionVariables.set('techIdTypeScript', byName('TypeScript'));",
+                  "pm.collectionVariables.set('techIdPostgreSQL', byName('PostgreSQL'));",
+                  "pm.collectionVariables.set('techIdDocker', byName('Docker'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/technologies",
+              "host": ["{{baseUrl}}"],
+              "path": ["technologies"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Perfil Freelancer",
+      "item": [
+        {
+          "name": "PATCH /profile/user/me/tech-stack",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{userAccessToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"skills\": [\n    { \"technologyId\": \"{{techIdNode}}\", \"level\": \"INTERMEDIARIO\" },\n    { \"technologyId\": \"{{techIdTypeScript}}\", \"level\": \"AVANCADO\" },\n    { \"technologyId\": \"{{techIdPostgreSQL}}\", \"level\": \"INTERMEDIARIO\" }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/profile/user/me/tech-stack",
+              "host": ["{{baseUrl}}"],
+              "path": ["profile", "user", "me", "tech-stack"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Vagas",
+      "item": [
+        {
+          "name": "POST /vagas",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json?.data?.id) pm.collectionVariables.set('jobId', json.data.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{companyAccessToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Backend Node.js Pleno\",\n  \"description\": \"Projeto para evolucao de API REST com Node.js, Prisma e PostgreSQL.\",\n  \"requirements\": \"Node.js, TypeScript, PostgreSQL\",\n  \"deadline\": \"2026-08-01T00:00:00.000Z\",\n  \"expiresAt\": \"2026-07-20T00:00:00.000Z\",\n  \"requiredTechnologyIds\": [\"{{techIdNode}}\", \"{{techIdTypeScript}}\"],\n  \"desirableTechnologyIds\": [\"{{techIdPostgreSQL}}\", \"{{techIdDocker}}\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/vagas",
+              "host": ["{{baseUrl}}"],
+              "path": ["vagas"]
+            }
+          }
+        },
+        {
+          "name": "GET /vagas (filtro any)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/vagas?technologyIds={{techIdNode}},{{techIdPostgreSQL}}&matchMode=any&active=true",
+              "host": ["{{baseUrl}}"],
+              "path": ["vagas"],
+              "query": [
+                { "key": "technologyIds", "value": "{{techIdNode}},{{techIdPostgreSQL}}" },
+                { "key": "matchMode", "value": "any" },
+                { "key": "active", "value": "true" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /vagas/:id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/vagas/{{jobId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["vagas", "{{jobId}}"]
+            }
+          }
+        },
+        {
+          "name": "PUT /vagas/:id",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{companyAccessToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Backend Node.js Senior\",\n  \"description\": \"Projeto atualizado para API REST e observabilidade.\",\n  \"requirements\": \"Node.js, TypeScript, PostgreSQL, Docker\",\n  \"deadline\": \"2026-08-15T00:00:00.000Z\",\n  \"expiresAt\": \"2026-08-01T00:00:00.000Z\",\n  \"requiredTechnologyIds\": [\"{{techIdNode}}\", \"{{techIdTypeScript}}\", \"{{techIdPostgreSQL}}\"],\n  \"desirableTechnologyIds\": [\"{{techIdDocker}}\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/vagas/{{jobId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["vagas", "{{jobId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Candidaturas",
+      "item": [
+        {
+          "name": "POST /vagas/:id/apply",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{userAccessToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"resumeUrl\": \"https://exemplo.com/cv-ana.pdf\",\n  \"coverLetter\": \"Tenho experiencia em Node.js e APIs com Prisma.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/vagas/{{jobId}}/apply",
+              "host": ["{{baseUrl}}"],
+              "path": ["vagas", "{{jobId}}", "apply"]
+            }
+          }
+        },
+        {
+          "name": "GET /vagas/:id/applications",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{companyAccessToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/vagas/{{jobId}}/applications?status=PENDING",
+              "host": ["{{baseUrl}}"],
+              "path": ["vagas", "{{jobId}}", "applications"],
+              "query": [{ "key": "status", "value": "PENDING" }]
+            }
+          }
+        },
+        {
+          "name": "GET /vagas/:id/candidates",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{companyAccessToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/vagas/{{jobId}}/candidates?status=PENDING",
+              "host": ["{{baseUrl}}"],
+              "path": ["vagas", "{{jobId}}", "candidates"],
+              "query": [{ "key": "status", "value": "PENDING" }]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

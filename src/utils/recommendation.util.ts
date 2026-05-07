@@ -24,9 +24,15 @@ export async function recommendCandidates(
 
   if (!jobWithTechnologies) return [];
 
-  const jobTechIds = jobWithTechnologies.technologies.map((jt) => jt.technologyId);
+  const requiredTechIds = jobWithTechnologies.technologies
+    .filter((jt) => jt.type === 'REQUIRED')
+    .map((jt) => jt.technologyId);
+  const desirableTechIds = jobWithTechnologies.technologies
+    .filter((jt) => jt.type === 'DESIRABLE')
+    .map((jt) => jt.technologyId);
+  const allJobTechIds = [...requiredTechIds, ...desirableTechIds];
 
-  if (jobTechIds.length === 0) {
+  if (allJobTechIds.length === 0) {
     const activeUsers = await prisma.user.findMany({
       where: {
         isActive: true,
@@ -66,8 +72,16 @@ export async function recommendCandidates(
   const candidates: RecommendedCandidate[] = usersWithStack
     .map((user) => {
       const userTechIds = new Set(user.techStack.map((ut) => ut.technologyId));
-      const matchedIds = jobTechIds.filter((id) => userTechIds.has(id));
-      const matchScore = (matchedIds.length / jobTechIds.length) * 100;
+      const matchedRequired = requiredTechIds.filter((id) => userTechIds.has(id));
+      const matchedDesirable = desirableTechIds.filter((id) => userTechIds.has(id));
+      const requiredScore = requiredTechIds.length
+        ? (matchedRequired.length / requiredTechIds.length) * 100
+        : 100;
+      const desirableScore = desirableTechIds.length
+        ? (matchedDesirable.length / desirableTechIds.length) * 100
+        : 0;
+      const matchScore = Math.min(100, requiredScore * 0.8 + desirableScore * 0.2);
+      const matchedIds = [...matchedRequired, ...matchedDesirable];
 
       return {
         id: user.id,

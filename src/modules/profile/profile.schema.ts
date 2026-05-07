@@ -17,12 +17,32 @@ export const updateUserResumeSchema = z.object({
 
 export type UpdateUserResumeDTO = z.infer<typeof updateUserResumeSchema>;
 
-export const updateTechStackSchema = z.object({
-  technologyIds: z
-    .array(z.string().uuid('ID de tecnologia inválido.'))
-    .min(1, 'Selecione ao menos uma tecnologia.')
-    .max(30, 'Máximo de 30 tecnologias permitidas.'),
-});
+const skillLevelSchema = z.enum(['BASICO', 'INTERMEDIARIO', 'AVANCADO', 'ESPECIALISTA']);
+
+const legacyTechIdsSchema = z
+  .array(z.string().uuid('ID de tecnologia inválido.'))
+  .min(1, 'Selecione ao menos uma tecnologia.')
+  .max(30, 'Máximo de 30 tecnologias permitidas.');
+
+const skillsSchema = z
+  .array(
+    z.object({
+      technologyId: z.string().uuid('ID de tecnologia inválido.'),
+      level: skillLevelSchema,
+    }),
+  )
+  .min(1, 'Selecione ao menos uma skill.')
+  .max(30, 'Máximo de 30 skills permitidas.');
+
+export const updateTechStackSchema = z
+  .object({
+    technologyIds: legacyTechIdsSchema.optional(),
+    skills: skillsSchema.optional(),
+  })
+  .refine((v) => !!v.skills || !!v.technologyIds, {
+    message: 'Informe `skills` ou `technologyIds`.',
+    path: ['skills'],
+  });
 
 export type UpdateTechStackDTO = z.infer<typeof updateTechStackSchema>;
 

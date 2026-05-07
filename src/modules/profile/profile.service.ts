@@ -225,21 +225,35 @@ export async function deleteUserResume(userId: string) {
 }
 
 export async function updateTechStack(userId: string, dto: UpdateTechStackDTO) {
+  const skills =
+    dto.skills ??
+    (dto.technologyIds ?? []).map((technologyId) => ({
+      technologyId,
+      level: 'BASICO' as const,
+    }));
+
+  const uniqueSkills = Array.from(
+    new Map(skills.map((item) => [item.technologyId, item])).values(),
+  );
+
+  const technologyIds = uniqueSkills.map((s) => s.technologyId);
+
   const existingTechCount = await prisma.technology.count({
-    where: { id: { in: dto.technologyIds } },
+    where: { id: { in: technologyIds } },
   });
 
-  if (existingTechCount !== dto.technologyIds.length) {
+  if (existingTechCount !== technologyIds.length) {
     throw new AppError(400, 'Uma ou mais tecnologias não existem.', 'INVALID_TECHNOLOGY_IDS');
   }
 
   await prisma.userTechnology.deleteMany({ where: { userId } });
 
-  if (dto.technologyIds.length > 0) {
+  if (uniqueSkills.length > 0) {
     await prisma.userTechnology.createMany({
-      data: dto.technologyIds.map((techId) => ({
+      data: uniqueSkills.map((item) => ({
         userId,
-        technologyId: techId,
+        technologyId: item.technologyId,
+        level: item.level,
       })),
     });
   }

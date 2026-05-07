@@ -106,6 +106,18 @@ model Technology {
   @@map("technologies")
 }
 
+enum SkillLevel {
+  BASICO
+  INTERMEDIARIO
+  AVANCADO
+  ESPECIALISTA
+}
+
+enum JobTechnologyType {
+  REQUIRED
+  DESIRABLE
+}
+
 // ─── Vaga de Emprego ────────────────────────────────────────────────────────────
 model Job {
   id           String   @id @default(uuid())
@@ -139,10 +151,12 @@ model Job {
 model JobTechnology {
   jobId          String
   technologyId   String
+  type           JobTechnologyType @default(REQUIRED)
   job            Job          @relation(fields: [jobId], references: [id], onDelete: Cascade)
   technology     Technology   @relation(fields: [technologyId], references: [id], onDelete: Cascade)
 
   @@id([jobId, technologyId])
+  @@index([jobId, type])
   @@map("job_technologies")
 }
 
@@ -150,6 +164,7 @@ model JobTechnology {
 model UserTechnology {
   userId       String
   technologyId String
+  level        SkillLevel @default(BASICO)
   user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   technology   Technology @relation(fields: [technologyId], references: [id], onDelete: Cascade)
 
