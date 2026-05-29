@@ -20,8 +20,8 @@ export function errorHandler(
 ): void {
   // ─── Erros de validação Zod ───────────────────────────────────────────────
   if (err instanceof ZodError) {
-    res.status(422).json({
-      status: 'error',
+    res.status(400).json({
+      success: false,
       message: 'Dados inválidos.',
       errors: err.flatten().fieldErrors,
     });
@@ -31,7 +31,7 @@ export function errorHandler(
   // ─── Erros de negócio (AppError) ──────────────────────────────────────────
   if (err instanceof AppError) {
     res.status(err.statusCode).json({
-      status: 'error',
+      success: false,
       message: err.message,
       ...(err.code && { code: err.code }),
     });
@@ -50,7 +50,7 @@ export function errorHandler(
     console.error('[UNHANDLED ERROR]', safe);
   }
   res.status(500).json({
-    status: 'error',
+    success: false,
     message: 'Erro interno do servidor. Tente novamente mais tarde.',
   });
 }

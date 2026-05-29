@@ -22,6 +22,7 @@ model User {
   resumeUrl     String?
   bio           String?
   isActive      Boolean  @default(true)
+  isAdmin       Boolean  @default(false)
   isBlocked     Boolean  @default(false)
   loginAttempts Int      @default(0)
   blockedUntil  DateTime?
@@ -36,6 +37,10 @@ model User {
   messages     Message[]
   notifications Notification[]
   applications  Application[]
+  givenReviews  Review[] @relation("ReviewGivenByUser")
+  receivedReviews Review[] @relation("ReviewReceivedByUser")
+  adminAuditLogs AdminAuditLog[]
+  passwordResetCodes UserPasswordResetCode[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -60,6 +65,9 @@ model Company {
   refreshTokens CompanyRefreshToken[]
   jobs          Job[]
   messages     Message[]
+  notifications Notification[]
+  givenReviews Review[] @relation("ReviewGivenByCompany")
+  receivedReviews Review[] @relation("ReviewReceivedByCompany")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -79,6 +87,24 @@ model UserRefreshToken {
 
   @@index([userId])
   @@map("user_refresh_tokens")
+}
+
+model UserPasswordResetCode {
+  id         String   @id @default(uuid())
+  userId     String
+  codeHash   String
+  attempts   Int      @default(0)
+  verifiedAt DateTime?
+  usedAt     DateTime?
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([expiresAt])
+  @@index([usedAt])
+  @@map("user_password_reset_codes")
 }
 
 model CompanyRefreshToken {
@@ -118,6 +144,13 @@ enum JobTechnologyType {
   DESIRABLE
 }
 
+enum JobStatus {
+  OPEN
+  PAUSED
+  CLOSED
+  CANCELLED
+}
+
 // ─── Vaga de Emprego ────────────────────────────────────────────────────────────
 model Job {
   id           String   @id @default(uuid())
@@ -128,6 +161,7 @@ model Job {
   expiresAt    DateTime
   isActive     Boolean  @default(true)
   isFilled     Boolean  @default(false)
+  status       JobStatus @default(OPEN)
 
   companyId    String
   company      Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
@@ -137,11 +171,13 @@ model Job {
   favorites    Favorite[]
   messages     Message[]
   applications Application[]
+  reviews      Review[]
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   @@index([companyId])
+  @@index([status, createdAt])
   @@index([isActive, createdAt])
   @@index([expiresAt])
   @@map("jobs")
@@ -223,12 +259,15 @@ model Notification {
   data      Json?
   read      Boolean  @default(false)
 
-  userId    String
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String?
+  user      User?      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  companyId String?
+  company   Company?   @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
 
   @@index([userId, read])
+  @@index([companyId, read])
   @@map("notifications")
 }
 
@@ -237,7 +276,14 @@ enum ApplicationStatus {
   PENDING
   REVIEWED
   ACCEPTED
+  COMPLETED
   REJECTED
+  CANCELLED
+}
+
+enum ActorType {
+  USER
+  COMPANY
 }
 
 model Application {
@@ -251,6 +297,7 @@ model Application {
 
   user      User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   job       Job    @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  reviews   Review[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -259,6 +306,51 @@ model Application {
   @@index([jobId])
   @@index([userId])
   @@map("applications")
+}
+
+model Review {
+  id            String   @id @default(uuid())
+  applicationId String
+  jobId         String
+  reviewerType  ActorType
+  reviewerUserId String?
+  reviewerCompanyId String?
+  reviewedType  ActorType
+  reviewedUserId String?
+  reviewedCompanyId String?
+  rating        Int
+  comment       String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  job           Job         @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  reviewerUser  User?       @relation("ReviewGivenByUser", fields: [reviewerUserId], references: [id], onDelete: Cascade)
+  reviewerCompany Company?  @relation("ReviewGivenByCompany", fields: [reviewerCompanyId], references: [id], onDelete: Cascade)
+  reviewedUser  User?       @relation("ReviewReceivedByUser", fields: [reviewedUserId], references: [id], onDelete: Cascade)
+  reviewedCompany Company?  @relation("ReviewReceivedByCompany", fields: [reviewedCompanyId], references: [id], onDelete: Cascade)
+
+  @@index([reviewedType, reviewedUserId, reviewedCompanyId, createdAt])
+  @@index([applicationId])
+  @@index([jobId])
+  @@unique([reviewerType, reviewerUserId, reviewerCompanyId, reviewedType, reviewedUserId, reviewedCompanyId, jobId])
+  @@map("reviews")
+}
+
+model AdminAuditLog {
+  id          String   @id @default(uuid())
+  adminUserId String
+  action      String
+  targetType  String
+  targetId    String
+  metadata    Json?
+  createdAt   DateTime @default(now())
+
+  adminUser   User     @relation(fields: [adminUserId], references: [id], onDelete: Cascade)
+
+  @@index([adminUserId, createdAt])
+  @@index([targetType, targetId, createdAt])
+  @@map("admin_audit_logs")
 }
 
 // ─── Experiências Profissionais (Perfil) ───────────────────────────────────────

@@ -14,27 +14,31 @@ Documento de acompanhamento do que **ainda falta implementar** no backend para f
 
 ## 1) Banco/Migrações Prisma
 
-- [ ] Criar e aplicar migração para mudanças recentes de skills/stacks:
+- [x] Criar e aplicar migração para mudanças recentes de skills/stacks:
   - `SkillLevel` em `UserTechnology`;
   - `JobTechnologyType` em `JobTechnology`;
   - índices novos.
-- [ ] Validar consistência entre `prisma/schema.prisma` e histórico de migrations.
+  - migration: `20260507144842_migrationhomo`
+- [ ] Validar consistência entre `prisma/schema.prisma` e histórico de migrations (rodar `npm run prisma:migrate` no ambiente).
 
 ## 2) Candidaturas — ciclo completo
 
-- [ ] Implementar `PATCH /applications/:id/status` (empresa altera status).
-- [ ] Implementar `GET /applications/me` (freelancer vê suas candidaturas).
-- [ ] Implementar `PATCH /applications/:id/cancel` (freelancer cancela candidatura).
-- [ ] Definir regras de transição de status (ex.: `PENDING -> REVIEWED -> ACCEPTED/REJECTED`).
+- [x] Implementar `PATCH /applications/:id/status` (empresa altera status).
+- [x] Implementar `GET /applications/me` (freelancer vê suas candidaturas).
+- [x] Implementar `PATCH /applications/:id/cancel` (freelancer cancela candidatura).
+- [x] Regras de transição de status:
+  - empresa: `PENDING -> REVIEWED | ACCEPTED | REJECTED`; `REVIEWED -> ACCEPTED | REJECTED`
+  - freelancer: `PENDING | REVIEWED -> CANCELLED`
+  - migration enum: `20260520120000_application_cancelled_status`
 
 ## 3) Vagas — status explícito
 
-- [ ] Implementar endpoint dedicado para status da vaga (`PATCH /vagas/:id/status`) com:
+- [x] Implementar endpoint dedicado para status da vaga (`PATCH /vagas/:id/status`) com:
   - aberta;
   - pausada;
   - encerrada;
   - cancelada.
-- [ ] Bloquear candidatura por status de vaga (não só `isActive/expiresAt/isFilled`).
+- [x] Bloquear candidatura por status de vaga (não só `isActive/expiresAt/isFilled`).
 
 ---
 
@@ -51,24 +55,24 @@ Documento de acompanhamento do que **ainda falta implementar** no backend para f
 
 ## 5) Notificações internas
 
-- [ ] Implementar módulo completo de notificações:
+- [x] Implementar módulo completo de notificações:
   - `GET /notifications`;
   - `PATCH /notifications/:id/read`;
   - `GET /notifications/unread-count`.
-- [ ] Disparar eventos automáticos:
+- [x] Disparar eventos automáticos:
   - nova candidatura;
   - mudança de status de candidatura;
   - nova mensagem.
 
 ## 6) Perfis públicos
 
-- [ ] Implementar visualização pública de perfil de freelancer.
-- [ ] Implementar visualização pública de perfil de empresa.
+- [x] Implementar visualização pública de perfil de freelancer.
+- [x] Implementar visualização pública de perfil de empresa.
 
 ## 7) Tratamento de erros/contrato de API
 
-- [ ] Padronizar contrato de erro para frontend (`status` vs `success`).
-- [ ] Definir padrão final de validação (`400` vs `422`) e aplicar de forma uniforme.
+- [x] Padronizar contrato de erro para frontend (`status` vs `success`).
+- [x] Definir padrão final de validação (`400` vs `422`) e aplicar de forma uniforme.
 
 ---
 
@@ -76,19 +80,19 @@ Documento de acompanhamento do que **ainda falta implementar** no backend para f
 
 ## 8) Avaliações
 
-- [ ] Criar modelagem + endpoints para avaliações entre freelancer/empresa.
-- [ ] Garantir vínculo obrigatório antes de avaliar.
-- [ ] Evitar duplicidade de avaliação por vínculo.
+- [x] Criar modelagem + endpoints para avaliações entre freelancer/empresa.
+- [x] Garantir vínculo obrigatório antes de avaliar.
+- [x] Evitar duplicidade de avaliação por vínculo.
 
 ## 9) Matching
 
-- [ ] Expor endpoints dedicados de matching para empresa e freelancer.
+- [x] Expor endpoints dedicados de matching para empresa e freelancer.
 - [ ] Persistir/reaproveitar score quando necessário (se virar requisito).
 
 ## 10) Administração básica
 
-- [ ] Definir papel admin no modelo de autenticação/autorização.
-- [ ] Endpoints mínimos de moderação:
+- [x] Definir papel admin no modelo de autenticação/autorização.
+- [x] Endpoints mínimos de moderação:
   - usuários (listar, bloquear/desbloquear);
   - vagas (listar, moderar/remover).
 
@@ -105,8 +109,8 @@ Documento de acompanhamento do que **ainda falta implementar** no backend para f
 
 ## Checklist de validação final do MVP
 
-- [ ] Fluxo freelancer: cadastro -> login -> perfil com skills -> candidatura.
-- [ ] Fluxo empresa: cadastro -> login -> criar vaga com required/desirable -> analisar candidaturas.
-- [ ] Segurança: JWT, RBAC por tipo, rate limit, hash de senha.
-- [ ] Observabilidade mínima: logs de erro e respostas padronizadas.
-- [ ] Documentação atualizada para frontend (rotas + exemplos + erros).
+- [x] Fluxo freelancer: cadastro -> login -> perfil com skills -> candidatura.
+- [x] Fluxo empresa: cadastro -> login -> criar vaga com required/desirable -> analisar candidaturas.
+- [x] Segurança: JWT, RBAC por tipo, rate limit, hash de senha.
+- [x] Observabilidade mínima: logs de erro e respostas padronizadas.
+- [x] Documentação atualizada para frontend (rotas + exemplos + erros).

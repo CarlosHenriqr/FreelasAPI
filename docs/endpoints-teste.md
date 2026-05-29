@@ -127,6 +127,52 @@ curl -X POST "http://localhost:3333/auth/logout" \
 
 Esperado: `200`.
 
+## 2.7 Solicitar código de recuperação
+
+### POST `/auth/password/forgot`
+
+```bash
+curl -X POST "http://localhost:3333/auth/password/forgot" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "ana.freela@example.com"
+  }'
+```
+
+Esperado: `200` com mensagem neutra (não expõe se e-mail existe).
+
+## 2.8 Validar código de recuperação
+
+### POST `/auth/password/verify-code`
+
+```bash
+curl -X POST "http://localhost:3333/auth/password/verify-code" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "ana.freela@example.com",
+    "code": "123456"
+  }'
+```
+
+Esperado: `200` quando o código estiver válido e não expirado.
+
+## 2.9 Redefinir senha com código
+
+### POST `/auth/password/reset`
+
+```bash
+curl -X POST "http://localhost:3333/auth/password/reset" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "ana.freela@example.com",
+    "code": "123456",
+    "newPassword": "NovaSenha123!",
+    "confirmNewPassword": "NovaSenha123!"
+  }'
+```
+
+Esperado: `200` e senha alterada.
+
 ---
 
 ## 3) Perfil (rotas autenticadas)
@@ -285,6 +331,23 @@ curl -X DELETE "http://localhost:3333/vagas/<JOB_ID>" \
 
 Esperado: `200` com `isActive: false`.
 
+## 5.6 Atualizar status da vaga (empresa dona)
+
+### PATCH `/vagas/:id/status`
+
+```bash
+curl -X PATCH "http://localhost:3333/vagas/<JOB_ID>/status" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <COMPANY_ACCESS_TOKEN>" \
+  -d '{ "status": "PAUSED" }'
+```
+
+Status aceitos:
+- `OPEN` (também aceita `aberta`);
+- `PAUSED` (também aceita `pausada`);
+- `CLOSED` (também aceita `encerrada`);
+- `CANCELLED` (também aceita `cancelada`).
+
 ---
 
 ## 6) Candidaturas (implementado no P0)
@@ -305,7 +368,7 @@ curl -X POST "http://localhost:3333/vagas/<JOB_ID>/apply" \
 
 Erros esperados:
 - `409` candidatura duplicada;
-- `409` vaga inativa/expirada;
+- `409` vaga não está `OPEN` ou está expirada/preenchida;
 - `422` sem `resumeUrl` (quando o perfil também não possui currículo).
 
 ## 6.2 Listar candidaturas da vaga (empresa dona)
@@ -326,9 +389,36 @@ curl -X GET "http://localhost:3333/vagas/<JOB_ID>/candidates?status=PENDING" \
   -H "Authorization: Bearer <COMPANY_ACCESS_TOKEN>"
 ```
 
-## 6.4 Mensagens da vaga (ainda não implementado)
+## 6.4 Candidaturas do freelancer (ciclo P0)
 
-### GET `/vagas/:id/messages`
+### GET `/applications/me`
+
+```bash
+curl -X GET "http://localhost:3333/applications/me?status=PENDING" \
+  -H "Authorization: Bearer <USER_ACCESS_TOKEN>"
+```
+
+### PATCH `/applications/:id/status` (empresa)
+
+```bash
+curl -X PATCH "http://localhost:3333/applications/<APPLICATION_ID>/status" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <COMPANY_ACCESS_TOKEN>" \
+  -d '{ "status": "REVIEWED" }'
+```
+
+Status permitidos no body: `REVIEWED`, `ACCEPTED`, `COMPLETED`, `REJECTED`.
+
+### PATCH `/applications/:id/cancel` (freelancer)
+
+```bash
+curl -X PATCH "http://localhost:3333/applications/<APPLICATION_ID>/cancel" \
+  -H "Authorization: Bearer <USER_ACCESS_TOKEN>"
+```
+
+## 6.5 Mensagens da vaga (ainda não implementado)
+
+### GET `/vagas/:id/messages` (legado por vaga)
 
 ```bash
 curl -X GET "http://localhost:3333/vagas/<JOB_ID>/messages" \
@@ -339,7 +429,142 @@ Esperado no momento: `501 NOT_IMPLEMENTED`.
 
 ---
 
-## 7) Ordem recomendada de teste (smoke)
+## 7) Notificações internas
+
+Rotas autenticadas para `user` e `company`.
+
+### GET `/notifications`
+
+```bash
+curl -X GET "http://localhost:3333/notifications?page=1&limit=20&read=false" \
+  -H "Authorization: Bearer <ACCESS_TOKEN>"
+```
+
+### PATCH `/notifications/:id/read`
+
+```bash
+curl -X PATCH "http://localhost:3333/notifications/<NOTIFICATION_ID>/read" \
+  -H "Authorization: Bearer <ACCESS_TOKEN>"
+```
+
+### GET `/notifications/unread-count`
+
+```bash
+curl -X GET "http://localhost:3333/notifications/unread-count" \
+  -H "Authorization: Bearer <ACCESS_TOKEN>"
+```
+
+---
+
+## 8) Perfis públicos
+
+### GET `/profile/users/:id`
+
+```bash
+curl -X GET "http://localhost:3333/profile/users/<USER_ID>"
+```
+
+### GET `/profile/companies/:id`
+
+```bash
+curl -X GET "http://localhost:3333/profile/companies/<COMPANY_ID>"
+```
+
+---
+
+## 9) Avaliações
+
+### POST `/reviews`
+
+```bash
+curl -X POST "http://localhost:3333/reviews" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <ACCESS_TOKEN>" \
+  -d '{
+    "applicationId": "<APPLICATION_ID>",
+    "rating": 5,
+    "comment": "Ótima experiência no projeto."
+  }'
+```
+
+Regra: só permite avaliação quando a candidatura estiver em `COMPLETED`.
+
+### GET `/reviews/received`
+
+```bash
+curl -X GET "http://localhost:3333/reviews/received?page=1&limit=20" \
+  -H "Authorization: Bearer <ACCESS_TOKEN>"
+```
+
+### GET `/reviews/summary`
+
+```bash
+curl -X GET "http://localhost:3333/reviews/summary" \
+  -H "Authorization: Bearer <ACCESS_TOKEN>"
+```
+
+---
+
+## 10) Matching
+
+### GET `/matching/jobs` (freelancer)
+
+```bash
+curl -X GET "http://localhost:3333/matching/jobs?limit=20" \
+  -H "Authorization: Bearer <USER_ACCESS_TOKEN>"
+```
+
+### GET `/matching/jobs/:jobId/candidates` (empresa dona da vaga)
+
+```bash
+curl -X GET "http://localhost:3333/matching/jobs/<JOB_ID>/candidates?limit=20" \
+  -H "Authorization: Bearer <COMPANY_ACCESS_TOKEN>"
+```
+
+---
+
+## 11) Administração básica
+
+As rotas exigem `role=admin` no JWT (usuário admin).
+
+### GET `/admin/users`
+
+```bash
+curl -X GET "http://localhost:3333/admin/users?type=user&page=1&limit=20" \
+  -H "Authorization: Bearer <ADMIN_ACCESS_TOKEN>"
+```
+
+### PATCH `/admin/users/:id/block`
+
+```bash
+curl -X PATCH "http://localhost:3333/admin/users/<TARGET_ID>/block?type=user" \
+  -H "Authorization: Bearer <ADMIN_ACCESS_TOKEN>"
+```
+
+### PATCH `/admin/users/:id/unblock`
+
+```bash
+curl -X PATCH "http://localhost:3333/admin/users/<TARGET_ID>/unblock?type=user" \
+  -H "Authorization: Bearer <ADMIN_ACCESS_TOKEN>"
+```
+
+### GET `/admin/jobs`
+
+```bash
+curl -X GET "http://localhost:3333/admin/jobs?page=1&limit=20" \
+  -H "Authorization: Bearer <ADMIN_ACCESS_TOKEN>"
+```
+
+### PATCH `/admin/jobs/:id/moderate-remove`
+
+```bash
+curl -X PATCH "http://localhost:3333/admin/jobs/<JOB_ID>/moderate-remove" \
+  -H "Authorization: Bearer <ADMIN_ACCESS_TOKEN>"
+```
+
+---
+
+## 12) Ordem recomendada de teste (smoke)
 
 1. `GET /health`
 2. cadastro freelancer + empresa
@@ -354,17 +579,31 @@ Esperado no momento: `501 NOT_IMPLEMENTED`.
 
 ---
 
-## 8) Erros comuns
+## 13) Erros comuns
+
+Contrato padrão de erro:
+
+```json
+{
+  "success": false,
+  "message": "Dados inválidos.",
+  "code": "OPTIONAL_CODE",
+  "errors": {
+    "field": ["mensagem de validação"]
+  }
+}
+```
 
 - `401 UNAUTHORIZED` ou `INVALID_TOKEN`: token ausente/inválido.
 - `403 FORBIDDEN`: tipo de usuário sem permissão.
 - `404 *_NOT_FOUND`: recurso inexistente.
 - `409 APPLICATION_ALREADY_EXISTS` ou `JOB_NOT_AVAILABLE`: conflito de regra de negócio.
-- `422`: validação de payload/regras de data.
+- `400`: validação de payload (Zod).
+- `422`: regra de negócio semântica.
 
 ---
 
-## 9) Observações de escopo
+## 14) Observações de escopo
 
 - Pagamentos (gateway, assinatura, cobrança real, webhook financeiro) ficam fora do MVP.
 - Use apenas fluxo interno de vagas/candidaturas para os testes do MVP atual.

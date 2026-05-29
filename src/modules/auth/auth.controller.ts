@@ -5,6 +5,9 @@ import {
   loginSchema,
   refreshTokenSchema,
   logoutSchema,
+  requestPasswordResetSchema,
+  verifyPasswordResetCodeSchema,
+  resetPasswordWithCodeSchema,
 } from './auth.schema';
 import * as AuthService from './auth.service';
 
@@ -100,6 +103,64 @@ export async function logout(
     res.status(200).json({
       status: 'success',
       message: 'Logout realizado com sucesso.',
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// POST /auth/password/forgot
+export async function requestPasswordReset(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const dto = requestPasswordResetSchema.parse(req.body);
+    await AuthService.requestPasswordReset(dto);
+
+    res.status(200).json({
+      status: 'success',
+      message:
+        'Se o e-mail estiver cadastrado, você receberá um código para recuperação de senha.',
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// POST /auth/password/verify-code
+export async function verifyPasswordResetCode(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const dto = verifyPasswordResetCodeSchema.parse(req.body);
+    await AuthService.verifyPasswordResetCode(dto);
+
+    res.status(200).json({
+      status: 'success',
+      message: 'Código validado com sucesso.',
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// POST /auth/password/reset
+export async function resetPasswordWithCode(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const dto = resetPasswordWithCodeSchema.parse(req.body);
+    await AuthService.resetPasswordWithCode(dto);
+
+    res.status(200).json({
+      status: 'success',
+      message: 'Senha alterada com sucesso.',
     });
   } catch (err) {
     next(err);

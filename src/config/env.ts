@@ -15,6 +15,18 @@ const envSchema = z.object({
 
   MAX_LOGIN_ATTEMPTS: z.coerce.number().default(5),
   BLOCK_DURATION_MINUTES: z.coerce.number().default(30),
+
+  PASSWORD_RESET_CODE_TTL_MINUTES: z.coerce.number().default(15),
+  PASSWORD_RESET_MAX_ATTEMPTS: z.coerce.number().default(5),
+  SMTP_HOST: z.string().optional(),
+  SMTP_PORT: z.coerce.number().default(587),
+  SMTP_SECURE: z
+    .enum(['true', 'false'])
+    .default('false')
+    .transform((value) => value === 'true'),
+  SMTP_USER: z.string().optional(),
+  SMTP_PASS: z.string().optional(),
+  SMTP_FROM: z.string().email().optional(),
 });
 
 const _parsed = envSchema.safeParse(process.env);

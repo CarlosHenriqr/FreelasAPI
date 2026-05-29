@@ -28,6 +28,34 @@ export async function getUserProfile(req: Request, res: Response, next: NextFunc
   }
 }
 
+export async function getPublicUserProfile(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const userId = req.params.id;
+    if (!userId) {
+      return next(new AppError(400, 'ID do freelancer não informado.', 'MISSING_USER_ID'));
+    }
+
+    const profile = await ProfileService.getPublicUserProfile(userId);
+    res.status(200).json({ status: 'success', data: profile });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function getPublicCompanyProfile(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const companyId = req.params.id;
+    if (!companyId) {
+      return next(new AppError(400, 'ID da empresa não informado.', 'MISSING_COMPANY_ID'));
+    }
+
+    const profile = await ProfileService.getPublicCompanyProfile(companyId);
+    res.status(200).json({ status: 'success', data: profile });
+  } catch (err) {
+    next(err);
+  }
+}
+
 export async function updateUserProfile(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     if (req.auth?.type !== 'user') {

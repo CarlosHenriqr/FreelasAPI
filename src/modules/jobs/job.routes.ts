@@ -16,6 +16,9 @@ router.get('/:id', JobController.getJob);
 // PUT /vagas/:id (somente empresa)
 router.put('/:id', authenticate, requireType('company'), JobController.updateJob);
 
+// PATCH /vagas/:id/status (somente empresa)
+router.patch('/:id/status', authenticate, requireType('company'), JobController.updateJobStatus);
+
 // DELETE /vagas/:id (somente empresa)
 router.delete('/:id', authenticate, requireType('company'), JobController.deleteJob);
 

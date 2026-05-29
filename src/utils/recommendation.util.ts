@@ -9,6 +9,19 @@ export type RecommendedCandidate = {
   matchedTechnologies: string[];
 };
 
+export type RecommendedJob = {
+  id: string;
+  title: string;
+  description: string;
+  matchScore: number;
+  matchedTechnologies: string[];
+  company: {
+    id: string;
+    name: string;
+    avatarUrl: string | null;
+  };
+};
+
 export async function recommendCandidates(
   jobId: string,
   limit = 20,
@@ -124,4 +137,78 @@ export async function recommendCandidates(
   );
 
   return candidates;
+}
+
+export async function recommendJobsForUser(userId: string, limit = 20): Promise<RecommendedJob[]> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      id: true,
+      isActive: true,
+      isBlocked: true,
+      techStack: {
+        include: { technology: true },
+      },
+    },
+  });
+
+  if (!user || !user.isActive || user.isBlocked) return [];
+
+  const userTechIds = new Set(user.techStack.map((item) => item.technologyId));
+  const jobs = await prisma.job.findMany({
+    where: {
+      status: 'OPEN',
+      isActive: true,
+      isFilled: false,
+      expiresAt: { gt: new Date() },
+    },
+    select: {
+      id: true,
+      title: true,
+      description: true,
+      company: {
+        select: {
+          id: true,
+          name: true,
+          avatarUrl: true,
+        },
+      },
+      technologies: {
+        include: {
+          technology: true,
+        },
+      },
+    },
+    orderBy: { createdAt: 'desc' },
+    take: Math.max(limit * 2, limit),
+  });
+
+  const scored = jobs
+    .map((job) => {
+      const required = job.technologies.filter((jt) => jt.type === 'REQUIRED');
+      const desirable = job.technologies.filter((jt) => jt.type === 'DESIRABLE');
+      const matchedRequired = required.filter((jt) => userTechIds.has(jt.technologyId));
+      const matchedDesirable = desirable.filter((jt) => userTechIds.has(jt.technologyId));
+
+      const requiredScore = required.length ? (matchedRequired.length / required.length) * 100 : 100;
+      const desirableScore = desirable.length ? (matchedDesirable.length / desirable.length) * 100 : 0;
+      const matchScore = Math.min(100, requiredScore * 0.8 + desirableScore * 0.2);
+
+      const matchedTechnologies = [...matchedRequired, ...matchedDesirable].map(
+        (item) => item.technology.name,
+      );
+
+      return {
+        id: job.id,
+        title: job.title,
+        description: job.description,
+        matchScore: Math.round(matchScore * 100) / 100,
+        matchedTechnologies,
+        company: job.company,
+      };
+    })
+    .sort((a, b) => b.matchScore - a.matchScore)
+    .slice(0, limit);
+
+  return scored;
 }

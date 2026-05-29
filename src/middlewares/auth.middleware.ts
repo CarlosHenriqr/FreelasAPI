@@ -45,3 +45,12 @@ export function requireType(type: TokenPayload['type']) {
     next();
   };
 }
+
+export function requireRole(role: TokenPayload['role']) {
+  return (req: Request, _res: Response, next: NextFunction): void => {
+    if (req.auth?.role !== role) {
+      return next(new AppError(403, 'Acesso não autorizado para este papel.', 'FORBIDDEN'));
+    }
+    next();
+  };
+}

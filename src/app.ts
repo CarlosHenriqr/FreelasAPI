@@ -6,6 +6,11 @@ import authRoutes from './modules/auth/auth.routes';
 import profileRoutes from './modules/profile/profile.routes';
 import technologyRoutes from './modules/technologies/technology.routes';
 import jobRoutes from './modules/jobs/job.routes';
+import applicationRoutes from './modules/applications/application.routes';
+import notificationRoutes from './modules/notifications/notification.routes';
+import reviewRoutes from './modules/reviews/review.routes';
+import matchingRoutes from './modules/matching/matching.routes';
+import adminRoutes from './modules/admin/admin.routes';
 import { errorHandler } from './middlewares/errorHandler.middleware';
 
 const app = express();
@@ -24,8 +29,9 @@ app.use(
     standardHeaders: true,
     legacyHeaders: false,
     message: {
-      status: 'error',
+      success: false,
       message: 'Muitas requisições. Tente novamente em alguns minutos.',
+      code: 'TOO_MANY_REQUESTS',
     },
   }),
 );
@@ -39,6 +45,11 @@ app.use('/auth', authRoutes);
 app.use('/profile', profileRoutes);
 app.use('/technologies', technologyRoutes);
 app.use('/vagas', jobRoutes);
+app.use('/applications', applicationRoutes);
+app.use('/notifications', notificationRoutes);
+app.use('/reviews', reviewRoutes);
+app.use('/matching', matchingRoutes);
+app.use('/admin', adminRoutes);
 
 // Health check simples
 app.get('/health', (_req, res) => {
@@ -47,7 +58,7 @@ app.get('/health', (_req, res) => {
 
 // 404 para rotas não encontradas
 app.use((_req, res) => {
-  res.status(404).json({ status: 'error', message: 'Rota não encontrada.' });
+  res.status(404).json({ success: false, message: 'Rota não encontrada.', code: 'ROUTE_NOT_FOUND' });
 });
 
 // ─── Handler de erros centralizado (deve ser o último middleware) ──────────────

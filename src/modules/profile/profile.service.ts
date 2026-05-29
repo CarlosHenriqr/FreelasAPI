@@ -48,6 +48,59 @@ export async function getUserProfile(userId: string) {
   };
 }
 
+export async function getPublicUserProfile(userId: string) {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      id: true,
+      name: true,
+      avatarUrl: true,
+      bio: true,
+      techStack: {
+        select: {
+          level: true,
+          technology: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+            },
+          },
+        },
+      },
+      experiences: {
+        orderBy: { startDate: 'desc' },
+        select: {
+          id: true,
+          companyName: true,
+          roleTitle: true,
+          startDate: true,
+          endDate: true,
+          description: true,
+        },
+      },
+      portfolio: {
+        orderBy: { createdAt: 'desc' },
+        select: {
+          id: true,
+          title: true,
+          url: true,
+          description: true,
+          imageUrl: true,
+          createdAt: true,
+        },
+      },
+      createdAt: true,
+    },
+  });
+
+  if (!user) {
+    throw new AppError(404, 'Freelancer não encontrado.', 'USER_NOT_FOUND');
+  }
+
+  return user;
+}
+
 export async function updateUserProfile(userId: string, dto: UpdateUserProfileDTO) {
   const data: Record<string, unknown> = {};
 
@@ -294,6 +347,43 @@ export async function getCompanyProfile(companyId: string) {
     ...company,
     cnpj: company.cnpj ? company.cnpj.replace(/^(\d{2})\d{10}(\d{2})$/, '$1**********$2') : company.cnpj,
   };
+}
+
+export async function getPublicCompanyProfile(companyId: string) {
+  const company = await prisma.company.findUnique({
+    where: { id: companyId },
+    select: {
+      id: true,
+      name: true,
+      avatarUrl: true,
+      jobs: {
+        where: {
+          status: 'OPEN',
+          isActive: true,
+        },
+        orderBy: { createdAt: 'desc' },
+        select: {
+          id: true,
+          title: true,
+          deadline: true,
+          expiresAt: true,
+          createdAt: true,
+        },
+      },
+      _count: {
+        select: {
+          jobs: true,
+        },
+      },
+      createdAt: true,
+    },
+  });
+
+  if (!company) {
+    throw new AppError(404, 'Empresa não encontrada.', 'COMPANY_NOT_FOUND');
+  }
+
+  return company;
 }
 
 export async function updateCompanyProfile(companyId: string, dto: UpdateCompanyProfileDTO) {

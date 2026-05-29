@@ -6,6 +6,7 @@ import {
   createJobSchema,
   listJobApplicationsQuerySchema,
   listJobsQuerySchema,
+  updateJobStatusSchema,
   updateJobSchema,
 } from './job.schema';
 
@@ -93,6 +94,30 @@ export async function deleteJob(req: Request, res: Response, next: NextFunction)
     res.status(200).json({
       status: 'success',
       message: 'Vaga desativada com sucesso.',
+      data: job,
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function updateJobStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    if (!req.auth || req.auth.type !== 'company') {
+      return next(new AppError(403, 'Acesso não autorizado para este perfil.', 'FORBIDDEN'));
+    }
+
+    const jobId = req.params.id;
+    if (!jobId) {
+      return next(new AppError(400, 'ID da vaga não informado.', 'MISSING_JOB_ID'));
+    }
+
+    const dto = updateJobStatusSchema.parse(req.body);
+    const job = await JobService.updateJobStatus(req.auth.sub, jobId, dto);
+
+    res.status(200).json({
+      status: 'success',
+      message: 'Status da vaga atualizado com sucesso.',
       data: job,
     });
   } catch (err) {

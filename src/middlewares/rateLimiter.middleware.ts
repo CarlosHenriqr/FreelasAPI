@@ -11,7 +11,7 @@ export const loginRateLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: {
-    status: 'error',
+    success: false,
     message: 'Muitas tentativas de login. Aguarde 15 minutos e tente novamente.',
     code: 'TOO_MANY_REQUESTS',
   },
@@ -27,7 +27,7 @@ export const registerRateLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: {
-    status: 'error',
+    success: false,
     message: 'Muitas tentativas de cadastro. Aguarde 1 hora e tente novamente.',
     code: 'TOO_MANY_REQUESTS',
   },
@@ -42,8 +42,23 @@ export const refreshRateLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: {
-    status: 'error',
+    success: false,
     message: 'Muitas requisições. Tente novamente em alguns minutos.',
+    code: 'TOO_MANY_REQUESTS',
+  },
+});
+
+/**
+ * Rate limiter para recuperação de senha.
+ */
+export const passwordResetRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 12,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    message: 'Muitas tentativas de recuperação de senha. Tente novamente em alguns minutos.',
     code: 'TOO_MANY_REQUESTS',
   },
 });

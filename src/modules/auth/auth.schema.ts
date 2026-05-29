@@ -4,7 +4,7 @@ import { isValidCNPJ } from '../../utils/cnpj.util';
 
 // ─── Política de senha (RN.06 – ConfigPerfil) ─────────────────────────────────
 // Mínimo 8 caracteres, pelo menos 1 maiúscula, 1 minúscula, 1 número
-const passwordSchema = z
+export const passwordSchema = z
   .string()
   .min(8, 'A senha deve ter no mínimo 8 caracteres.')
   .regex(/[A-Z]/, 'A senha deve conter pelo menos uma letra maiúscula.')
@@ -77,3 +77,35 @@ export const logoutSchema = z.object({
 });
 
 export type LogoutDTO = z.infer<typeof logoutSchema>;
+
+// ─── Recuperação de senha (freelancer) ────────────────────────────────────────
+export const requestPasswordResetSchema = z.object({
+  email: z.string().email('E-mail inválido.').toLowerCase(),
+});
+
+export type RequestPasswordResetDTO = z.infer<typeof requestPasswordResetSchema>;
+
+export const verifyPasswordResetCodeSchema = z.object({
+  email: z.string().email('E-mail inválido.').toLowerCase(),
+  code: z
+    .string()
+    .regex(/^\d{6}$/, 'Código inválido. Informe 6 dígitos.'),
+});
+
+export type VerifyPasswordResetCodeDTO = z.infer<typeof verifyPasswordResetCodeSchema>;
+
+export const resetPasswordWithCodeSchema = z
+  .object({
+    email: z.string().email('E-mail inválido.').toLowerCase(),
+    code: z
+      .string()
+      .regex(/^\d{6}$/, 'Código inválido. Informe 6 dígitos.'),
+    newPassword: passwordSchema,
+    confirmNewPassword: z.string().min(8).max(200),
+  })
+  .refine((value) => value.newPassword === value.confirmNewPassword, {
+    message: 'Confirmação de senha não confere.',
+    path: ['confirmNewPassword'],
+  });
+
+export type ResetPasswordWithCodeDTO = z.infer<typeof resetPasswordWithCodeSchema>;

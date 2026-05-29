@@ -4,6 +4,7 @@ import { env } from '../config/env';
 export type TokenPayload = {
   sub: string;           // id do usuário ou empresa
   type: 'user' | 'company';
+  role: 'user' | 'company' | 'admin';
   iat?: number;
   exp?: number;
 };

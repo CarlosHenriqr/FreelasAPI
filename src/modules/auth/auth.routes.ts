@@ -4,6 +4,7 @@ import {
   loginRateLimiter,
   registerRateLimiter,
   refreshRateLimiter,
+  passwordResetRateLimiter,
 } from '../../middlewares/rateLimiter.middleware';
 import { authenticate } from '../../middlewares/auth.middleware';
 
@@ -46,5 +47,29 @@ router.post('/refresh', refreshRateLimiter, AuthController.refresh);
  * @access Privado (requer access token válido)
  */
 router.post('/logout', authenticate, AuthController.logout);
+
+/**
+ * @route  POST /auth/password/forgot
+ * @desc   Solicita código de recuperação por e-mail
+ * @body   { email }
+ * @access Público
+ */
+router.post('/password/forgot', passwordResetRateLimiter, AuthController.requestPasswordReset);
+
+/**
+ * @route  POST /auth/password/verify-code
+ * @desc   Valida o código de recuperação
+ * @body   { email, code }
+ * @access Público
+ */
+router.post('/password/verify-code', passwordResetRateLimiter, AuthController.verifyPasswordResetCode);
+
+/**
+ * @route  POST /auth/password/reset
+ * @desc   Altera a senha usando código validado
+ * @body   { email, code, newPassword, confirmNewPassword }
+ * @access Público
+ */
+router.post('/password/reset', passwordResetRateLimiter, AuthController.resetPasswordWithCode);
 
 export default router;

@@ -4,6 +4,9 @@ import * as ProfileController from './profile.controller';
 
 const router = Router();
 
+router.get('/users/:id', ProfileController.getPublicUserProfile);
+router.get('/companies/:id', ProfileController.getPublicCompanyProfile);
+
 router.use(authenticate);
 
 router.get('/me', ProfileController.getUserProfile);

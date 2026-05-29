@@ -1,13 +1,46 @@
 import { prisma } from '../../config/database';
 import { sanitizeString } from '../../utils/sanitize.util';
 import { AppError } from '../../middlewares/errorHandler.middleware';
+import { createNotificationForCompany } from '../notifications/notification.service';
 import type {
   ApplyToJobDTO,
   CreateJobDTO,
   ListJobApplicationsQueryDTO,
   ListJobsQueryDTO,
+  UpdateJobStatusDTO,
   UpdateJobDTO,
 } from './job.schema';
+
+type JobStatus = 'OPEN' | 'PAUSED' | 'CLOSED' | 'CANCELLED';
+
+const JOB_STATUS_TRANSITIONS: Record<JobStatus, JobStatus[]> = {
+  OPEN: ['PAUSED', 'CLOSED', 'CANCELLED'],
+  PAUSED: ['OPEN', 'CLOSED', 'CANCELLED'],
+  CLOSED: [],
+  CANCELLED: [],
+};
+
+function assertJobStatusTransition(current: JobStatus, next: JobStatus): void {
+  const allowed = JOB_STATUS_TRANSITIONS[current];
+  if (!allowed.includes(next)) {
+    throw new AppError(422, `Transição inválida de ${current} para ${next}.`, 'INVALID_JOB_STATUS_TRANSITION');
+  }
+}
+
+function toLegacyFlags(status: JobStatus): { isActive: boolean; isFilled: boolean } {
+  switch (status) {
+    case 'OPEN':
+      return { isActive: true, isFilled: false };
+    case 'PAUSED':
+      return { isActive: false, isFilled: false };
+    case 'CLOSED':
+      return { isActive: false, isFilled: true };
+    case 'CANCELLED':
+      return { isActive: false, isFilled: false };
+    default:
+      return { isActive: false, isFilled: false };
+  }
+}
 
 export async function createJob(companyId: string, dto: CreateJobDTO) {
   const title = sanitizeString(dto.title);
@@ -64,6 +97,7 @@ export async function createJob(companyId: string, dto: CreateJobDTO) {
       expiresAt: true,
       isActive: true,
       isFilled: true,
+      status: true,
       companyId: true,
       createdAt: true,
       updatedAt: true,
@@ -88,6 +122,7 @@ export async function createJob(companyId: string, dto: CreateJobDTO) {
 export async function listJobs(query: ListJobsQueryDTO) {
   const search = query.search ? sanitizeString(query.search) : undefined;
   const active = query.active;
+  const status = query.status as JobStatus | undefined;
   const queryTechnologyIds = query.technologyIds
     ? (Array.isArray(query.technologyIds) ? query.technologyIds : query.technologyIds.split(','))
         .map((v) => v.trim())
@@ -96,7 +131,8 @@ export async function listJobs(query: ListJobsQueryDTO) {
 
   const jobs = await prisma.job.findMany({
     where: {
-      ...(active === undefined ? {} : { isActive: active }),
+      ...(status ? { status } : {}),
+      ...(status || active === undefined ? {} : active ? { status: 'OPEN' } : { status: { not: 'OPEN' } }),
       ...(search
         ? {
             OR: [
@@ -126,6 +162,7 @@ export async function listJobs(query: ListJobsQueryDTO) {
       expiresAt: true,
       isActive: true,
       isFilled: true,
+      status: true,
       companyId: true,
       createdAt: true,
       technologies: {
@@ -158,6 +195,7 @@ export async function getJobById(jobId: string) {
       expiresAt: true,
       isActive: true,
       isFilled: true,
+      status: true,
       createdAt: true,
       updatedAt: true,
       company: {
@@ -280,6 +318,7 @@ export async function updateJob(companyId: string, jobId: string, dto: UpdateJob
         expiresAt: true,
         isActive: true,
         isFilled: true,
+        status: true,
         companyId: true,
         updatedAt: true,
         technologies: {
@@ -316,10 +355,12 @@ export async function deleteJob(companyId: string, jobId: string) {
 
   const updated = await prisma.job.update({
     where: { id: jobId },
-    data: { isActive: false },
+    data: { status: 'CANCELLED', isActive: false, isFilled: false },
     select: {
       id: true,
       isActive: true,
+      isFilled: true,
+      status: true,
       updatedAt: true,
     },
   });
@@ -334,6 +375,7 @@ export async function applyToJob(userId: string, jobId: string, dto: ApplyToJobD
       id: true,
       isActive: true,
       isFilled: true,
+      status: true,
       expiresAt: true,
       companyId: true,
     },
@@ -342,7 +384,7 @@ export async function applyToJob(userId: string, jobId: string, dto: ApplyToJobD
   if (!job) {
     throw new AppError(404, 'Vaga não encontrada.', 'JOB_NOT_FOUND');
   }
-  if (!job.isActive || job.isFilled || job.expiresAt <= new Date()) {
+  if (job.status !== 'OPEN' || !job.isActive || job.isFilled || job.expiresAt <= new Date()) {
     throw new AppError(409, 'Esta vaga não aceita novas candidaturas.', 'JOB_NOT_AVAILABLE');
   }
 
@@ -390,6 +432,16 @@ export async function applyToJob(userId: string, jobId: string, dto: ApplyToJobD
       resumeUrl: true,
       coverLetter: true,
       createdAt: true,
+    },
+  });
+
+  await createNotificationForCompany({
+    companyId: job.companyId,
+    type: 'NEW_APPLICATION',
+    content: 'Você recebeu uma nova candidatura em uma vaga.',
+    data: {
+      applicationId: application.id,
+      jobId: job.id,
     },
   });
 
@@ -453,5 +505,63 @@ export async function getJobCandidates(companyId: string, jobId: string, query: 
     appliedAt: item.createdAt,
     candidate: item.user,
   }));
+}
+
+export async function updateJobStatus(companyId: string, jobId: string, dto: UpdateJobStatusDTO) {
+  const existing = await prisma.job.findUnique({
+    where: { id: jobId },
+    select: {
+      id: true,
+      companyId: true,
+      status: true,
+      isFilled: true,
+      expiresAt: true,
+    },
+  });
+
+  if (!existing) {
+    throw new AppError(404, 'Vaga não encontrada.', 'JOB_NOT_FOUND');
+  }
+  if (existing.companyId !== companyId) {
+    throw new AppError(403, 'Acesso negado. Esta vaga não pertence à sua empresa.', 'FORBIDDEN');
+  }
+
+  const nextStatus = dto.status as JobStatus;
+  const currentStatus = existing.status as JobStatus;
+  if (nextStatus === currentStatus) {
+    throw new AppError(409, 'A vaga já está neste status.', 'JOB_STATUS_ALREADY_SET');
+  }
+
+  assertJobStatusTransition(currentStatus, nextStatus);
+
+  if (nextStatus === 'OPEN' && (existing.isFilled || existing.expiresAt <= new Date())) {
+    throw new AppError(
+      409,
+      'Não é possível reabrir vaga preenchida ou expirada.',
+      'JOB_CANNOT_REOPEN',
+    );
+  }
+
+  const legacyFlags = toLegacyFlags(nextStatus);
+  const updated = await prisma.job.update({
+    where: { id: jobId },
+    data: {
+      status: nextStatus,
+      isActive: legacyFlags.isActive,
+      isFilled: legacyFlags.isFilled,
+    },
+    select: {
+      id: true,
+      title: true,
+      status: true,
+      isActive: true,
+      isFilled: true,
+      deadline: true,
+      expiresAt: true,
+      updatedAt: true,
+    },
+  });
+
+  return updated;
 }
 
