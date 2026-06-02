@@ -1,4 +1,5 @@
 import express from 'express';
+import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 
@@ -14,6 +15,14 @@ import adminRoutes from './modules/admin/admin.routes';
 import { errorHandler } from './middlewares/errorHandler.middleware';
 
 const app = express();
+
+// ─── CORS (frontend em dev/produção) ─────────────────────────────────────────
+app.use(
+  cors({
+    origin: process.env.FRONTEND_URL?.split(',') ?? ['http://localhost:5173', 'http://127.0.0.1:5173'],
+    credentials: true,
+  }),
+);
 
 // ─── Segurança de headers HTTP (RNF02) ────────────────────────────────────────
 app.use(helmet());
