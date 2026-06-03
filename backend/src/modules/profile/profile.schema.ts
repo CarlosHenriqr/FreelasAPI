@@ -1,12 +1,24 @@
 import { z } from 'zod';
+import { isAllowedJobRole } from './jobRoles.catalog';
 
 const urlSchema = z.string().url('URL inválida.').max(500, 'URL muito longa.').or(z.literal(''));
 
+export const phoneSchema = z
+  .string()
+  .min(10, 'Telefone obrigatório.')
+  .max(20, 'Telefone inválido.')
+  .regex(/^(\(\d{2}\)\s?)?\d{4,5}-?\d{4}$|^\d{10,11}$/, 'Telefone inválido. Use 10 ou 11 dígitos.');
+
+export const bioSchema = z
+  .string()
+  .min(10, 'Bio obrigatória (mínimo 10 caracteres).')
+  .max(1500, 'Bio muito longa.');
+
 export const updateUserProfileSchema = z.object({
   name: z.string().min(2, 'Nome deve ter no mínimo 2 caracteres.').max(100, 'Nome muito longo.').optional(),
-  phone: z.string().regex(/^\(?\d{2}\)?\s?\d{4,5}-?\d{4}$/, 'Telefone inválido.').or(z.literal('')).optional(),
+  phone: phoneSchema.optional(),
   avatarUrl: urlSchema.optional(),
-  bio: z.string().max(1500, 'Bio muito longa.').optional(),
+  bio: bioSchema.optional(),
 });
 
 export type UpdateUserProfileDTO = z.infer<typeof updateUserProfileSchema>;
@@ -31,7 +43,7 @@ const skillsSchema = z
       level: skillLevelSchema,
     }),
   )
-  .min(1, 'Selecione ao menos uma skill.')
+  .min(1, 'Selecione ao menos uma tecnologia na stack.')
   .max(30, 'Máximo de 30 skills permitidas.');
 
 export const updateTechStackSchema = z
@@ -56,9 +68,9 @@ export type UpdateCompanyProfileDTO = z.infer<typeof updateCompanyProfileSchema>
 
 export const updateMeSchema = z.object({
   name: z.string().min(2, 'Nome deve ter no mínimo 2 caracteres.').max(150, 'Nome muito longo.').optional(),
-  phone: z.string().regex(/^\(?\d{2}\)?\s?\d{4,5}-?\d{4}$/, 'Telefone inválido.').or(z.literal('')).optional(),
+  phone: phoneSchema.optional(),
   avatarUrl: urlSchema.optional(),
-  bio: z.string().max(1500, 'Bio muito longa.').optional(),
+  bio: bioSchema.optional(),
 });
 
 export type UpdateMeDTO = z.infer<typeof updateMeSchema>;
@@ -66,9 +78,18 @@ export type UpdateMeDTO = z.infer<typeof updateMeSchema>;
 export const experienceSchema = z
   .object({
     companyName: z.string().min(2).max(120),
-    roleTitle: z.string().min(2).max(120).optional(),
+    roleTitle: z
+      .string()
+      .min(2, 'Informe o cargo.')
+      .max(120, 'Cargo muito longo.')
+      .refine((v) => isAllowedJobRole(v), {
+        message: 'Cargo inválido. Use entre 2 e 120 caracteres.',
+      }),
     startDate: z.coerce.date(),
-    endDate: z.coerce.date().optional(),
+    endDate: z.preprocess(
+      (val) => (val === null || val === undefined || val === '' ? undefined : val),
+      z.coerce.date().optional(),
+    ),
     description: z.string().max(2000).optional(),
   })
   .refine((v) => !v.endDate || v.endDate >= v.startDate, {

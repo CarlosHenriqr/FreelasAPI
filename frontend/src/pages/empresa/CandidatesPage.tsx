@@ -67,7 +67,7 @@ export function EmpresaCandidatesPage() {
               navigate(v ? `/empresa/candidatos?jobId=${v}` : '/empresa/candidatos');
             }}
           >
-            <option value="">Todas as vagas</option>
+            <option value="">Todas os projetos</option>
             {(jobsQuery.data ?? []).map((j) => (
               <option key={j.id} value={j.id}>
                 {j.title}
@@ -105,14 +105,14 @@ export function EmpresaCandidatesPage() {
           <EmptyState
             icon={Users}
             title="Nenhuma candidatura"
-            description="Publique vagas para começar a receber candidatos."
+            description="Publique projetos para começar a receber candidatos."
           />
         )}
         <div className="space-y-3">
           {applications.map((a) => (
             <Link key={a.id} to={`/empresa/candidatos/${a.id}`}>
-              <Card className="flex items-center gap-4 p-4 transition-all hover:shadow-sm">
-                <div className="grid h-11 w-11 place-items-center rounded-full bg-gradient-to-br from-primary to-[oklch(0.35_0.2_268)] text-xs font-semibold text-primary-foreground">
+              <Card className="flex items-center gap-4 p-4 transition-colors duration-150 hover:bg-surface-muted/50">
+                <div className="grid h-11 w-11 place-items-center rounded-md bg-primary text-xs font-semibold text-primary-foreground">
                   {getInitials(a.user?.name ?? '?')}
                 </div>
                 <div className="min-w-0 flex-1">

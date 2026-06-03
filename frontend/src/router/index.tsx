@@ -25,6 +25,9 @@ import { FreelancerRecommendedPage } from '@/pages/freelancer/RecommendedPage';
 import { FreelancerApplicationsPage } from '@/pages/freelancer/ApplicationsPage';
 import { FreelancerApplicationDetailPage } from '@/pages/freelancer/ApplicationDetailPage';
 import { FreelancerProfilePage } from '@/pages/freelancer/ProfilePage';
+import { MyProfileViewPage } from '@/pages/freelancer/MyProfileViewPage';
+import { FreelancerAccountPage } from '@/pages/freelancer/AccountPage';
+import { EmpresaAccountPage } from '@/pages/empresa/AccountPage';
 
 // Admin
 import { AdminDashboardPage } from '@/pages/admin/DashboardPage';
@@ -56,6 +59,7 @@ export const router = createBrowserRouter([
           { path: 'empresa/candidatos', element: <EmpresaCandidatesPage /> },
           { path: 'empresa/candidatos/:id', element: <EmpresaCandidateDetailPage /> },
           { path: 'empresa/notificacoes', element: <EmpresaNotificationsPage /> },
+          { path: 'empresa/conta', element: <EmpresaAccountPage /> },
         ],
       },
 
@@ -68,7 +72,11 @@ export const router = createBrowserRouter([
           { path: 'freelancer/recomendadas', element: <FreelancerRecommendedPage /> },
           { path: 'freelancer/trabalhos', element: <FreelancerApplicationsPage /> },
           { path: 'freelancer/trabalhos/:id', element: <FreelancerApplicationDetailPage /> },
-          { path: 'freelancer/curriculo', element: <FreelancerProfilePage /> },
+          { path: 'freelancer/perfil', element: <MyProfileViewPage /> },
+          { path: 'freelancer/perfil/editar', element: <FreelancerProfilePage /> },
+          { path: 'freelancer/curriculo', element: <Navigate to="/freelancer/perfil" replace /> },
+          { path: 'freelancer/curriculo/editar', element: <Navigate to="/freelancer/perfil/editar" replace /> },
+          { path: 'freelancer/conta', element: <FreelancerAccountPage /> },
         ],
       },
 

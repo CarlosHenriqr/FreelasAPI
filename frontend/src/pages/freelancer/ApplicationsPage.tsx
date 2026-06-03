@@ -61,11 +61,11 @@ export function FreelancerApplicationsPage() {
           <EmptyState
             icon={Briefcase}
             title="Nenhuma candidatura"
-            description="Explore vagas e envie sua primeira proposta."
+            description="Explore projetos e envie sua primeira proposta."
             action={
               <Link to="/freelancer/vagas">
                 <span className="text-sm font-semibold text-primary hover:underline">
-                  Buscar vagas
+                  Buscar projetos
                 </span>
               </Link>
             }
@@ -74,7 +74,7 @@ export function FreelancerApplicationsPage() {
         <div className="space-y-3">
           {apps.map((a) => (
             <Link key={a.id} to={`/freelancer/trabalhos/${a.id}`}>
-              <Card className="flex items-center gap-4 p-4 transition-all hover:shadow-sm">
+              <Card className="flex items-center gap-4 p-4 transition-colors duration-150 hover:bg-surface-muted/50">
                 <div className="min-w-0 flex-1">
                   <p className="font-semibold">{a.job?.title ?? 'Projeto'}</p>
                   <p className="text-xs text-muted-foreground">

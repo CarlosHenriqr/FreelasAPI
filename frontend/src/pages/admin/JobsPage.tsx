@@ -49,17 +49,17 @@ export function AdminJobsPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b bg-surface-muted text-left text-xs uppercase tracking-wider text-muted-foreground">
-                    <th className="px-5 py-3">Título</th>
-                    <th className="px-5 py-3">Empresa</th>
-                    <th className="px-5 py-3">Publicada</th>
-                    <th className="px-5 py-3">Status</th>
-                    <th className="px-5 py-3">Ações</th>
+                  <tr className="border-b bg-muted/40 text-left">
+                    <th className="px-5 py-3 font-mono text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Título</th>
+                    <th className="px-5 py-3 font-mono text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Empresa</th>
+                    <th className="px-5 py-3 font-mono text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Publicada</th>
+                    <th className="px-5 py-3 font-mono text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Status</th>
+                    <th className="px-5 py-3 font-mono text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Ações</th>
                   </tr>
                 </thead>
                 <tbody>
                   {jobs.map((j) => (
-                    <tr key={j.id} className="border-b">
+                    <tr key={j.id} className="border-b transition-colors hover:bg-muted/20">
                       <td className="px-5 py-3 font-medium">{j.title}</td>
                       <td className="px-5 py-3 text-muted-foreground">
                         {j.company?.name ?? '—'}

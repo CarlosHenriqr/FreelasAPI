@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Mail, Lock, ArrowRight, Building2, User } from 'lucide-react';
 import { toast } from 'sonner';
 import { Logo } from '@/components/taskio/Logo';
+import { LoginTestimonialsPanel } from '@/components/taskio/LoginTestimonialsPanel';
 import { Btn, Field, TextInput } from '@/components/taskio/ui';
 import { PageTransition } from '@/components/layout/PageTransition';
 import { useAuth } from '@/contexts/AuthContext';
@@ -39,7 +40,7 @@ export function LoginPage() {
         <div className="flex flex-col px-6 py-10 sm:px-12">
           <Logo />
           <div className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center py-10">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">
+            <p className="font-mono text-[10px] font-medium uppercase tracking-[0.16em] text-primary">
               Bem-vindo de volta
             </p>
             <h1 className="mt-2 font-display text-3xl font-bold tracking-tight">
@@ -93,7 +94,7 @@ export function LoginPage() {
                 />
                 <Link
                   to="/recuperar-senha"
-                  className="mt-1 inline-block text-xs font-medium text-primary hover:underline"
+                  className="mt-1 inline-block text-xs font-medium text-primary link-underline"
                 >
                   Esqueci minha senha
                 </Link>
@@ -110,57 +111,18 @@ export function LoginPage() {
               Não possui uma conta?{' '}
               <Link
                 to="/cadastro/freelancer"
-                className="font-semibold text-primary hover:underline"
+                className="font-semibold text-primary link-underline"
               >
                 Criar conta
               </Link>
             </p>
           </div>
-          <p className="text-xs text-muted-foreground">
-            © 2026 TASKIO · Plataforma segura e criptografada
+          <p className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground/60">
+            &copy; 2026 TASKIO &middot; Plataforma segura e criptografada
           </p>
         </div>
 
-        <div className="relative hidden overflow-hidden bg-[oklch(0.14_0.02_265)] lg:block">
-          <div className="absolute inset-0 bg-grid opacity-20" />
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,oklch(0.55_0.22_268/0.35),transparent_60%)]" />
-          <div className="relative flex h-full flex-col justify-between p-12 text-[oklch(0.97_0.005_255)]">
-            <div className="flex items-center gap-2 text-sm font-medium text-white/60">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" /> Sistema operacional ·
-              uptime 99.99%
-            </div>
-            <div>
-              <p className="font-display text-3xl font-semibold leading-snug">
-                &quot;A TASKIO reduziu nosso tempo médio de contratação técnica de 6 semanas para 4
-                dias.&quot;
-              </p>
-              <div className="mt-6 flex items-center gap-3">
-                <div className="grid h-10 w-10 place-items-center rounded-full bg-gradient-to-br from-fuchsia-400 to-violet-500 text-sm font-semibold">
-                  MR
-                </div>
-                <div>
-                  <p className="text-sm font-semibold">Marina Reis</p>
-                  <p className="text-xs text-white/60">Head of Engineering · Nexo Financial</p>
-                </div>
-              </div>
-            </div>
-            <div className="grid grid-cols-3 gap-4 text-center">
-              {[
-                { v: '12k+', l: 'freelancers' },
-                { v: '1.8k', l: 'empresas' },
-                { v: '48h', l: 'onboarding' },
-              ].map((s) => (
-                <div
-                  key={s.l}
-                  className="rounded-lg border border-white/10 bg-white/5 p-4 backdrop-blur"
-                >
-                  <p className="font-display text-xl font-bold">{s.v}</p>
-                  <p className="mt-1 text-xs uppercase tracking-wider text-white/60">{s.l}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
+        <LoginTestimonialsPanel />
       </div>
     </PageTransition>
   );

@@ -96,7 +96,7 @@ export function EmpresaCandidateDetailPage() {
           <div className="space-y-5">
             <Card className="p-6">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-                <div className="grid h-20 w-20 place-items-center rounded-2xl bg-gradient-to-br from-primary to-[oklch(0.35_0.2_268)] text-2xl font-bold text-primary-foreground">
+                <div className="grid h-20 w-20 place-items-center rounded-lg bg-primary text-2xl font-bold text-primary-foreground">
                   {getInitials(application.user?.name ?? '?')}
                 </div>
                 <div className="flex-1">
@@ -140,9 +140,11 @@ export function EmpresaCandidateDetailPage() {
                   {profile.experiences.map((e) => (
                     <li key={e.id} className="relative">
                       <span className="absolute -left-[27px] top-1.5 grid h-4 w-4 place-items-center rounded-full border-2 border-background bg-primary" />
-                      <p className="font-display font-semibold">{e.title}</p>
+                      <p className="font-display font-semibold">
+                        {e.roleTitle ?? 'Cargo não informado'}
+                      </p>
                       <p className="text-xs text-muted-foreground">
-                        {e.company} ·{' '}
+                        {e.companyName} ·{' '}
                         {new Date(e.startDate).getFullYear()}
                         {e.endDate ? ` — ${new Date(e.endDate).getFullYear()}` : ' — Presente'}
                       </p>

@@ -115,10 +115,10 @@ export function EmpresaProjectsPage() {
               return (
                 <Card
                   key={p.id}
-                  className="flex flex-col p-6 transition-all hover:-translate-y-0.5 hover:shadow-md"
+                  className="flex flex-col p-6 transition-all duration-200 hover:-translate-y-px hover:border-primary/20"
                 >
                   <div className="flex items-start justify-between gap-3">
-                    <div className="grid h-10 w-10 place-items-center rounded-lg bg-primary/10 text-primary">
+                    <div className="grid h-10 w-10 place-items-center rounded-md bg-primary/6 text-primary">
                       <Briefcase className="h-4 w-4" />
                     </div>
                     <JobStatusBadge status={p.status} />
@@ -134,7 +134,7 @@ export function EmpresaProjectsPage() {
                     {stack.slice(0, 4).map((s) => (
                       <span
                         key={s}
-                        className="rounded-md border bg-surface-muted px-2 py-0.5 text-[11px] font-medium"
+                        className="rounded border bg-surface-muted px-2 py-0.5 font-mono text-[10px] font-medium"
                       >
                         {s}
                       </span>
@@ -142,7 +142,7 @@ export function EmpresaProjectsPage() {
                   </div>
                   <div className="mt-5 flex items-center justify-between border-t pt-4">
                     <div>
-                      <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                      <p className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
                         Candidatos
                       </p>
                       <p className="text-sm font-semibold">{p._count?.applications ?? 0}</p>

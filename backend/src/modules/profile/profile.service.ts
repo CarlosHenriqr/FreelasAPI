@@ -1,6 +1,7 @@
 import { prisma } from '../../config/database';
 import { AppError } from '../../middlewares/errorHandler.middleware';
 import { sanitizeString } from '../../utils/sanitize.util';
+import { uploadAvatarToStorage } from '../../services/avatarStorage.service';
 import bcrypt from 'bcryptjs';
 import { env } from '../../config/env';
 import type {
@@ -145,7 +146,7 @@ export async function createExperience(userId: string, dto: ExperienceDTO) {
     data: {
       userId,
       companyName: sanitizeString(dto.companyName),
-      roleTitle: dto.roleTitle ? sanitizeString(dto.roleTitle) : null,
+      roleTitle: sanitizeString(dto.roleTitle),
       startDate: dto.startDate,
       endDate: dto.endDate ?? null,
       description: dto.description ? sanitizeString(dto.description) : null,
@@ -170,7 +171,7 @@ export async function updateExperience(userId: string, experienceId: string, dto
     where: { id: experienceId },
     data: {
       companyName: sanitizeString(dto.companyName),
-      roleTitle: dto.roleTitle ? sanitizeString(dto.roleTitle) : null,
+      roleTitle: sanitizeString(dto.roleTitle),
       startDate: dto.startDate,
       endDate: dto.endDate ?? null,
       description: dto.description ? sanitizeString(dto.description) : null,
@@ -407,6 +408,44 @@ export async function updateCompanyProfile(companyId: string, dto: UpdateCompany
       phone: true,
       avatarUrl: true,
       isActive: true,
+      updatedAt: true,
+    },
+  });
+
+  return updated;
+}
+
+export async function uploadUserAvatar(userId: string, file: Express.Multer.File) {
+  const avatarUrl = await uploadAvatarToStorage(userId, file);
+
+  const updated = await prisma.user.update({
+    where: { id: userId },
+    data: { avatarUrl },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      phone: true,
+      avatarUrl: true,
+      updatedAt: true,
+    },
+  });
+
+  return updated;
+}
+
+export async function uploadCompanyAvatar(companyId: string, file: Express.Multer.File) {
+  const avatarUrl = await uploadAvatarToStorage(companyId, file);
+
+  const updated = await prisma.company.update({
+    where: { id: companyId },
+    data: { avatarUrl },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      phone: true,
+      avatarUrl: true,
       updatedAt: true,
     },
   });

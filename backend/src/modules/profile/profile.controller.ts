@@ -149,6 +149,42 @@ export async function deleteUserResume(req: Request, res: Response, next: NextFu
   }
 }
 
+export async function uploadUserAvatar(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    if (req.auth?.type !== 'user') {
+      return next(new AppError(403, 'Acesso não autorizado para este perfil.', 'FORBIDDEN'));
+    }
+
+    const updated = await ProfileService.uploadUserAvatar(req.auth.sub, req.file!);
+
+    res.status(200).json({
+      status: 'success',
+      message: 'Avatar atualizado com sucesso.',
+      data: updated,
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function uploadCompanyAvatar(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    if (req.auth?.type !== 'company') {
+      return next(new AppError(403, 'Acesso não autorizado para este perfil.', 'FORBIDDEN'));
+    }
+
+    const updated = await ProfileService.uploadCompanyAvatar(req.auth.sub, req.file!);
+
+    res.status(200).json({
+      status: 'success',
+      message: 'Avatar atualizado com sucesso.',
+      data: updated,
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
 export async function updateTechStack(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     if (req.auth?.type !== 'user') {

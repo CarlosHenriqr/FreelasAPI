@@ -8,6 +8,11 @@ const catalogByNormalizedName = new Map(
 );
 
 export async function listTechnologies(search?: string) {
+  const count = await prisma.technology.count();
+  if (count === 0) {
+    await seedDefaultTechnologies();
+  }
+
   const where = search ? { name: { contains: search, mode: 'insensitive' as const } } : {};
 
   const technologies = await prisma.technology.findMany({

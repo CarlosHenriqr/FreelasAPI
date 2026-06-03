@@ -41,7 +41,7 @@ export function FreelancerRecommendedPage() {
           <EmptyState
             icon={Sparkles}
             title="Nenhuma recomendação"
-            description="Complete seu currículo e stack técnica para receber matches."
+            description="Complete seu perfil e stack técnica para receber matches."
           />
         )}
         <div className="space-y-4">

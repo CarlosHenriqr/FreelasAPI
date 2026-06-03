@@ -62,17 +62,17 @@ export function AdminUsersPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b bg-surface-muted text-left text-xs uppercase tracking-wider text-muted-foreground">
-                    <th className="px-5 py-3">Nome</th>
-                    <th className="px-5 py-3">E-mail</th>
-                    <th className="px-5 py-3">Cadastro</th>
-                    <th className="px-5 py-3">Status</th>
-                    <th className="px-5 py-3">Ações</th>
+                  <tr className="border-b bg-muted/40 text-left">
+                    <th className="px-5 py-3 font-mono text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Nome</th>
+                    <th className="px-5 py-3 font-mono text-[10px] font-medium uppercase tracking-wider text-muted-foreground">E-mail</th>
+                    <th className="px-5 py-3 font-mono text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Cadastro</th>
+                    <th className="px-5 py-3 font-mono text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Status</th>
+                    <th className="px-5 py-3 font-mono text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Ações</th>
                   </tr>
                 </thead>
                 <tbody>
                   {users.map((u) => (
-                    <tr key={u.id} className="border-b">
+                    <tr key={u.id} className="border-b transition-colors hover:bg-muted/20">
                       <td className="px-5 py-3 font-medium">{u.name}</td>
                       <td className="px-5 py-3 text-muted-foreground">{u.email}</td>
                       <td className="px-5 py-3 text-muted-foreground">

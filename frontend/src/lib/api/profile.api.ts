@@ -1,5 +1,12 @@
 import { apiRequest } from '@/lib/api/client';
-import type { Experience, PortfolioItem, SkillLevel, UserProfile } from '@/types/api';
+import { apiUploadForm } from '@/lib/api/upload';
+import type {
+  CreateExperiencePayload,
+  Experience,
+  PortfolioItem,
+  SkillLevel,
+  UserProfile,
+} from '@/types/api';
 
 export const profileApi = {
   me: () => apiRequest<UserProfile>('/profile/me'),
@@ -10,8 +17,20 @@ export const profileApi = {
   updateUser: (payload: Partial<UserProfile>) =>
     apiRequest<UserProfile>('/profile/user/me', { method: 'PATCH', body: payload }),
 
+  uploadUserAvatar: (file: File) => {
+    const form = new FormData();
+    form.append('avatar', file);
+    return apiUploadForm<UserProfile>('/profile/user/me/avatar', form);
+  },
+
   updateCompany: (payload: Partial<UserProfile>) =>
     apiRequest<UserProfile>('/profile/company/me', { method: 'PATCH', body: payload }),
+
+  uploadCompanyAvatar: (file: File) => {
+    const form = new FormData();
+    form.append('avatar', file);
+    return apiUploadForm<UserProfile>('/profile/company/me/avatar', form);
+  },
 
   updateResume: (resumeUrl: string) =>
     apiRequest<UserProfile>('/profile/user/me/resume', { method: 'PUT', body: { resumeUrl } }),
@@ -38,7 +57,7 @@ export const profileApi = {
 
   listExperiences: () => apiRequest<Experience[]>('/profile/me/experiences'),
 
-  createExperience: (payload: Omit<Experience, 'id'>) =>
+  createExperience: (payload: CreateExperiencePayload) =>
     apiRequest<Experience>('/profile/me/experiences', { method: 'POST', body: payload }),
 
   updateExperience: (id: string, payload: Partial<Experience>) =>

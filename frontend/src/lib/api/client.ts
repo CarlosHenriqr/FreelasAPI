@@ -38,7 +38,7 @@ export function clearAuthSession(): void {
 
 let refreshPromise: Promise<AuthTokens | null> | null = null;
 
-async function refreshAccessToken(): Promise<AuthTokens | null> {
+export async function refreshAccessToken(): Promise<AuthTokens | null> {
   const refreshToken = getRefreshToken();
   if (!refreshToken) return null;
 

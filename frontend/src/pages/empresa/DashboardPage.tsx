@@ -125,7 +125,7 @@ export function EmpresaDashboardPage() {
           <Card className="p-6">
             <div className="flex items-start justify-between">
               <div>
-                <h2 className="font-display text-lg font-semibold">Atividade da semana</h2>
+                <h2 className="font-display text-lg font-semibold tracking-tight">Atividade da semana</h2>
                 <p className="text-sm text-muted-foreground">Candidaturas recebidas.</p>
               </div>
             </div>
@@ -134,36 +134,39 @@ export function EmpresaDashboardPage() {
                 <AreaChart data={chartData} margin={{ top: 5, right: 0, left: -20, bottom: 0 }}>
                   <defs>
                     <linearGradient id="c1" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="oklch(0.55 0.22 268)" stopOpacity={0.35} />
-                      <stop offset="100%" stopColor="oklch(0.55 0.22 268)" stopOpacity={0} />
+                      <stop offset="0%" stopColor="oklch(0.52 0.14 175)" stopOpacity={0.25} />
+                      <stop offset="100%" stopColor="oklch(0.52 0.14 175)" stopOpacity={0} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid stroke="oklch(0.92 0.008 260)" vertical={false} />
+                  <CartesianGrid stroke="oklch(0.925 0.008 80)" vertical={false} />
                   <XAxis
                     dataKey="day"
-                    stroke="oklch(0.55 0.025 260)"
-                    fontSize={12}
+                    stroke="oklch(0.52 0.02 80)"
+                    fontSize={11}
+                    fontFamily="JetBrains Mono"
                     tickLine={false}
                     axisLine={false}
                   />
                   <YAxis
-                    stroke="oklch(0.55 0.025 260)"
-                    fontSize={12}
+                    stroke="oklch(0.52 0.02 80)"
+                    fontSize={11}
+                    fontFamily="JetBrains Mono"
                     tickLine={false}
                     axisLine={false}
                   />
                   <Tooltip
                     contentStyle={{
-                      borderRadius: 8,
-                      border: '1px solid oklch(0.92 0.008 260)',
+                      borderRadius: 6,
+                      border: '1px solid oklch(0.925 0.008 80)',
                       fontSize: 12,
+                      fontFamily: 'Plus Jakarta Sans',
                     }}
                   />
                   <Area
                     type="monotone"
                     dataKey="candidatos"
-                    stroke="oklch(0.45 0.22 268)"
-                    strokeWidth={2.5}
+                    stroke="oklch(0.52 0.14 175)"
+                    strokeWidth={2}
                     fill="url(#c1)"
                   />
                 </AreaChart>
@@ -173,21 +176,21 @@ export function EmpresaDashboardPage() {
 
           <Card className="p-6">
             <div className="flex items-center justify-between">
-              <h2 className="font-display text-lg font-semibold">Vagas recentes</h2>
-              <Link to="/empresa/projetos" className="text-xs font-semibold text-primary hover:underline">
+              <h2 className="font-display text-lg font-semibold tracking-tight">Projetos recentes</h2>
+              <Link to="/empresa/projetos" className="font-mono text-[10px] font-semibold uppercase tracking-wider text-primary link-underline">
                 Ver todas
               </Link>
             </div>
-            <div className="mt-4 space-y-3">
+            <div className="mt-4 space-y-2">
               {jobs.slice(0, 3).map((p: Job) => (
                 <div
                   key={p.id}
-                  className="flex items-start justify-between rounded-lg border bg-surface p-3 transition-colors hover:bg-surface-muted"
+                  className="flex items-start justify-between rounded-md border bg-surface p-3 transition-colors duration-150 hover:bg-surface-muted/50"
                 >
                   <div className="min-w-0">
                     <p className="truncate text-sm font-semibold">{p.title}</p>
-                    <p className="mt-0.5 text-xs text-muted-foreground">
-                      {formatRelativeDate(p.createdAt)} · {p._count?.applications ?? 0}{' '}
+                    <p className="mt-0.5 font-mono text-[10px] text-muted-foreground">
+                      {formatRelativeDate(p.createdAt)} &middot; {p._count?.applications ?? 0}{' '}
                       candidatos
                     </p>
                   </div>
@@ -195,7 +198,7 @@ export function EmpresaDashboardPage() {
                 </div>
               ))}
               {jobs.length === 0 && (
-                <p className="text-sm text-muted-foreground">Nenhuma vaga publicada ainda.</p>
+                  <p className="text-sm text-muted-foreground">Nenhum projeto publicado ainda.</p>
               )}
             </div>
           </Card>
@@ -204,12 +207,12 @@ export function EmpresaDashboardPage() {
         <Card className="mt-6 p-6">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="font-display text-lg font-semibold">Candidatos recomendados</h2>
+              <h2 className="font-display text-lg font-semibold tracking-tight">Candidatos recomendados</h2>
               <p className="text-sm text-muted-foreground">
                 Top matches gerados pelo motor de compatibilidade.
               </p>
             </div>
-            <Link to="/empresa/candidatos" className="text-xs font-semibold text-primary hover:underline">
+            <Link to="/empresa/candidatos" className="font-mono text-[10px] font-semibold uppercase tracking-wider text-primary link-underline">
               Ver todos
             </Link>
           </div>
@@ -217,9 +220,9 @@ export function EmpresaDashboardPage() {
             {(candidatesQuery.data ?? []).map((c) => (
               <div
                 key={c.id}
-                className="flex items-center gap-3 rounded-lg border bg-surface p-4 transition-all hover:shadow-sm"
+                className="flex items-center gap-3 rounded-md border bg-surface p-4 transition-all duration-150 hover:bg-surface-muted/50"
               >
-                <div className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-gradient-to-br from-primary to-[oklch(0.35_0.2_268)] text-sm font-semibold text-primary-foreground">
+                <div className="grid h-11 w-11 shrink-0 place-items-center rounded-md bg-primary text-sm font-semibold text-primary-foreground">
                   {getInitials(c.user?.name ?? '?')}
                 </div>
                 <div className="min-w-0 flex-1">
@@ -240,7 +243,7 @@ export function EmpresaDashboardPage() {
             ))}
             {!candidatesQuery.data?.length && (
               <p className="col-span-2 text-sm text-muted-foreground">
-                Publique uma vaga para ver recomendações de candidatos.
+                Publique um projeto para ver recomendações de candidatos.
               </p>
             )}
           </div>

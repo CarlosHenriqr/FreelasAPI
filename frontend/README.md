@@ -16,13 +16,12 @@ Interface web da plataforma TASKIO (TCC). React + TypeScript + Tailwind CSS + Vi
 ## Início rápido
 
 ```bash
-cd frontend
 npm install
-cp .env.example .env
+cp .env.example .env   # Windows: copy .env.example .env
 npm run dev
 ```
 
-A API deve estar rodando em `http://localhost:3333` (pasta `backend/`).
+A API deve estar rodando em `http://localhost:3333` (repositório [Taskio-API](https://github.com/CarlosHenriqr/Taskio-API)).
 
 ## Variáveis de ambiente
 

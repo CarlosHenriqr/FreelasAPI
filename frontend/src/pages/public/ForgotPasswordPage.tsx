@@ -86,7 +86,7 @@ export function ForgotPasswordPage() {
 
   return (
     <PageTransition>
-      <div className="flex min-h-screen flex-col items-center justify-center bg-surface-muted px-4 py-12">
+      <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4 py-12">
         <Logo />
         <Card className="mt-8 w-full max-w-md p-7">
           <Link

@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { authenticate } from '../../middlewares/auth.middleware';
+import { avatarUpload } from '../../middlewares/upload.middleware';
 import * as ProfileController from './profile.controller';
 
 const router = Router();
@@ -13,10 +14,20 @@ router.get('/me', ProfileController.getUserProfile);
 router.put('/me', ProfileController.updateMe);
 router.put('/me/password', ProfileController.changePassword);
 router.patch('/user/me', ProfileController.updateUserProfile);
+router.post(
+  '/user/me/avatar',
+  avatarUpload.single('avatar'),
+  ProfileController.uploadUserAvatar,
+);
 router.put('/user/me/resume', ProfileController.updateUserResume);
 router.delete('/user/me/resume', ProfileController.deleteUserResume);
 router.patch('/user/me/tech-stack', ProfileController.updateTechStack);
 router.patch('/company/me', ProfileController.updateCompanyProfile);
+router.post(
+  '/company/me/avatar',
+  avatarUpload.single('avatar'),
+  ProfileController.uploadCompanyAvatar,
+);
 
 // ─── Experiências (somente freelancer) ─────────────────────────────────────────
 router.get('/me/experiences', ProfileController.listExperiences);

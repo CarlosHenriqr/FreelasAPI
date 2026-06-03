@@ -1,5 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
+import multer from 'multer';
 import { ZodError } from 'zod';
+import { AVATAR_MAX_BYTES } from '../config/supabase';
 
 export class AppError extends Error {
   constructor(
@@ -18,12 +20,30 @@ export function errorHandler(
   res: Response,
   _next: NextFunction,
 ): void {
-  // ─── Erros de validação Zod ───────────────────────────────────────────────
-  if (err instanceof ZodError) {
+  if (err instanceof multer.MulterError) {
+    const message =
+      err.code === 'LIMIT_FILE_SIZE'
+        ? `Imagem muito grande. Tamanho máximo: ${Math.round(AVATAR_MAX_BYTES / 1024 / 1024)} MB.`
+        : 'Falha no upload do arquivo.';
     res.status(400).json({
       success: false,
-      message: 'Dados inválidos.',
-      errors: err.flatten().fieldErrors,
+      message,
+      code: err.code,
+    });
+    return;
+  }
+
+  // ─── Erros de validação Zod ───────────────────────────────────────────────
+  if (err instanceof ZodError) {
+    const fieldErrors = err.flatten().fieldErrors;
+    const firstFieldMessage = Object.values(fieldErrors)
+      .flat()
+      .find((msg): msg is string => typeof msg === 'string' && msg.length > 0);
+
+    res.status(400).json({
+      success: false,
+      message: firstFieldMessage ?? 'Dados inválidos.',
+      errors: fieldErrors,
     });
     return;
   }

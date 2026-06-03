@@ -44,6 +44,7 @@ export type Technology = {
   id: string;
   name: string;
   slug: string;
+  category?: string;
 };
 
 export type JobTechnology = {
@@ -139,12 +140,20 @@ export type UserProfile = {
 
 export type Experience = {
   id: string;
-  title: string;
-  company: string;
+  companyName: string;
+  roleTitle?: string | null;
   description?: string | null;
   startDate: string;
   endDate?: string | null;
-  current: boolean;
+  current?: boolean;
+};
+
+export type CreateExperiencePayload = {
+  companyName: string;
+  roleTitle: string;
+  description?: string;
+  startDate: string;
+  endDate?: string | null;
 };
 
 export type PortfolioItem = {
