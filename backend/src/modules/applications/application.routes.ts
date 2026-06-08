@@ -12,6 +12,13 @@ router.get(
   ApplicationController.listMyApplications,
 );
 
+router.get(
+  '/me/:id',
+  authenticate,
+  requireType('user'),
+  ApplicationController.getMyApplication,
+);
+
 // PATCH /applications/:id/status — empresa altera status
 router.patch(
   '/:id/status',

@@ -3,6 +3,7 @@ import 'dotenv/config';
 
 import { env } from './config/env';
 import { prisma } from './config/database';
+import { isSupabaseStorageConfigured } from './config/supabase';
 import app from './app';
 
 async function bootstrap() {
@@ -18,6 +19,11 @@ async function bootstrap() {
   const server = app.listen(env.PORT, () => {
     console.log(`🚀  Servidor rodando em http://localhost:${env.PORT}`);
     console.log(`🌍  Ambiente: ${env.NODE_ENV}`);
+    if (!isSupabaseStorageConfigured()) {
+      console.warn('⚠️  Supabase Storage não configurado — upload de avatar desabilitado.');
+    } else {
+      console.log('✅  Supabase Storage configurado para upload de avatar.');
+    }
   });
 
   // ─── Graceful shutdown ────────────────────────────────────────────────────

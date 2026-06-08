@@ -1,6 +1,7 @@
 import { ApplicationStatus } from '@prisma/client';
 import { prisma } from '../../config/database';
 import { AppError } from '../../middlewares/errorHandler.middleware';
+import { sendApplicationAcceptedEmail } from '../../utils/email.util';
 import { createNotificationForUser } from '../notifications/notification.service';
 import type { ListMyApplicationsQueryDTO, UpdateApplicationStatusDTO } from './application.schema';
 
@@ -17,6 +18,15 @@ const COMPANY_TRANSITIONS: Record<ApplicationStatus, ApplicationStatus[]> = {
 
 const USER_CANCELLABLE: ApplicationStatus[] = ['PENDING', 'REVIEWED'];
 
+const STATUS_LABELS: Record<ApplicationStatus, string> = {
+  PENDING: 'Pendente',
+  REVIEWED: 'Em análise',
+  ACCEPTED: 'Aceita',
+  REJECTED: 'Recusada',
+  COMPLETED: 'Concluída',
+  CANCELLED: 'Cancelada',
+};
+
 function assertCompanyTransition(current: ApplicationStatus, next: ApplicationStatus): void {
   const allowed = COMPANY_TRANSITIONS[current];
   if (!allowed.includes(next)) {
@@ -26,6 +36,40 @@ function assertCompanyTransition(current: ApplicationStatus, next: ApplicationSt
       'INVALID_STATUS_TRANSITION',
     );
   }
+}
+
+function buildStatusNotificationContent(params: {
+  nextStatus: ApplicationStatus;
+  companyName: string;
+  jobTitle: string;
+  companyEmail?: string | null;
+  companyPhone?: string | null;
+}): { type: string; content: string } {
+  const { nextStatus, companyName, jobTitle, companyEmail, companyPhone } = params;
+
+  if (nextStatus === 'ACCEPTED') {
+    const contactHint =
+      companyEmail || companyPhone
+        ? ` A empresa ${companyName} entrará em contato pelo seu e-mail ou telefone cadastrados`
+        : ` A empresa ${companyName} entrará em contato usando os dados do seu perfil`;
+
+    return {
+      type: 'APPLICATION_ACCEPTED',
+      content: `Parabéns! Sua candidatura para "${jobTitle}" foi aceita.${contactHint}.`,
+    };
+  }
+
+  if (nextStatus === 'REJECTED') {
+    return {
+      type: 'APPLICATION_REJECTED',
+      content: `Sua candidatura para "${jobTitle}" foi recusada por ${companyName}.`,
+    };
+  }
+
+  return {
+    type: 'APPLICATION_STATUS_CHANGED',
+    content: `Sua candidatura para "${jobTitle}" foi atualizada para ${STATUS_LABELS[nextStatus]}.`,
+  };
 }
 
 export async function updateApplicationStatus(
@@ -38,7 +82,19 @@ export async function updateApplicationStatus(
     select: {
       id: true,
       status: true,
-      job: { select: { companyId: true, title: true } },
+      job: {
+        select: {
+          companyId: true,
+          title: true,
+          company: {
+            select: {
+              name: true,
+              email: true,
+              phone: true,
+            },
+          },
+        },
+      },
     },
   });
 
@@ -75,6 +131,7 @@ export async function updateApplicationStatus(
             id: true,
             name: true,
             email: true,
+            phone: true,
             avatarUrl: true,
           },
         },
@@ -82,6 +139,13 @@ export async function updateApplicationStatus(
           select: {
             id: true,
             title: true,
+            company: {
+              select: {
+                name: true,
+                email: true,
+                phone: true,
+              },
+            },
           },
         },
       },
@@ -101,17 +165,41 @@ export async function updateApplicationStatus(
     return applicationUpdated;
   });
 
+  const company = application.job.company;
+  const notification = buildStatusNotificationContent({
+    nextStatus,
+    companyName: company.name,
+    jobTitle: application.job.title,
+    companyEmail: company.email,
+    companyPhone: company.phone,
+  });
+
   await createNotificationForUser({
     userId: updated.user.id,
-    type: 'APPLICATION_STATUS_CHANGED',
-    content: `Sua candidatura foi atualizada para ${updated.status}.`,
+    type: notification.type,
+    content: notification.content,
     data: {
       applicationId: updated.id,
       jobId: updated.job.id,
       previousStatus: application.status,
       nextStatus: updated.status,
+      companyName: company.name,
+      companyEmail: company.email,
+      companyPhone: company.phone,
+      jobTitle: application.job.title,
     },
   });
+
+  if (nextStatus === 'ACCEPTED') {
+    await sendApplicationAcceptedEmail({
+      to: updated.user.email,
+      userName: updated.user.name,
+      companyName: company.name,
+      jobTitle: application.job.title,
+      companyEmail: company.email,
+      companyPhone: company.phone,
+    });
+  }
 
   return updated;
 }
@@ -161,6 +249,40 @@ export async function cancelApplication(userId: string, applicationId: string) {
   return updated;
 }
 
+const myApplicationJobSelect = {
+  id: true,
+  title: true,
+  description: true,
+  requirements: true,
+  deadline: true,
+  expiresAt: true,
+  status: true,
+  isActive: true,
+  isFilled: true,
+  createdAt: true,
+  technologies: {
+    select: {
+      type: true,
+      technology: {
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+        },
+      },
+    },
+  },
+  company: {
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      phone: true,
+      avatarUrl: true,
+    },
+  },
+} as const;
+
 export async function listMyApplications(userId: string, query: ListMyApplicationsQueryDTO) {
   const applications = await prisma.application.findMany({
     where: {
@@ -170,29 +292,41 @@ export async function listMyApplications(userId: string, query: ListMyApplicatio
     orderBy: { createdAt: 'desc' },
     select: {
       id: true,
+      jobId: true,
       status: true,
       resumeUrl: true,
       coverLetter: true,
       createdAt: true,
       updatedAt: true,
       job: {
-        select: {
-          id: true,
-          title: true,
-          isActive: true,
-          isFilled: true,
-          expiresAt: true,
-          company: {
-            select: {
-              id: true,
-              name: true,
-              avatarUrl: true,
-            },
-          },
-        },
+        select: myApplicationJobSelect,
       },
     },
   });
 
   return applications;
+}
+
+export async function getMyApplicationById(userId: string, applicationId: string) {
+  const application = await prisma.application.findFirst({
+    where: { id: applicationId, userId },
+    select: {
+      id: true,
+      jobId: true,
+      status: true,
+      resumeUrl: true,
+      coverLetter: true,
+      createdAt: true,
+      updatedAt: true,
+      job: {
+        select: myApplicationJobSelect,
+      },
+    },
+  });
+
+  if (!application) {
+    throw new AppError(404, 'Candidatura não encontrada.', 'APPLICATION_NOT_FOUND');
+  }
+
+  return application;
 }

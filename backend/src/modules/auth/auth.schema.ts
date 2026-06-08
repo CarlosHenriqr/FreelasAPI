@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import { isValidCPF } from '../../utils/cpf.util';
-import { isValidCNPJ } from '../../utils/cnpj.util';
+import { isValidCPF, normalizeCPF } from '../../utils/cpf.util';
+import { isValidCNPJ, normalizeCNPJ } from '../../utils/cnpj.util';
 
 // ─── Política de senha (RN.06 – ConfigPerfil) ─────────────────────────────────
 // Mínimo 8 caracteres, pelo menos 1 maiúscula, 1 minúscula, 1 número
@@ -54,15 +54,74 @@ export const registerCompanySchema = z.object({
 export type RegisterCompanyDTO = z.infer<typeof registerCompanySchema>;
 
 // ─── Login (compartilhado — distingue por type no body) ───────────────────────
-export const loginSchema = z.object({
-  email: z.string().email('E-mail inválido.').toLowerCase(),
-  password: z.string().min(1, 'Senha obrigatória.'),
-  type: z.enum(['user', 'company'], {
-    errorMap: () => ({ message: 'Tipo deve ser "user" ou "company".' }),
-  }),
-});
+// Campo `email` aceita e-mail, CPF (freelancer) ou CNPJ (empresa).
+export const loginSchema = z
+  .object({
+    email: z.string().min(1, 'Informe e-mail, CPF ou CNPJ.'),
+    password: z.string().min(1, 'Senha obrigatória.'),
+    type: z.enum(['user', 'company'], {
+      errorMap: () => ({ message: 'Tipo deve ser "user" ou "company".' }),
+    }),
+  })
+  .superRefine((data, ctx) => {
+    const value = data.email.trim();
+    if (value.includes('@')) {
+      const parsed = z.string().email('E-mail inválido.').safeParse(value.toLowerCase());
+      if (!parsed.success) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['email'],
+          message: 'E-mail inválido.',
+        });
+      }
+      return;
+    }
+
+    if (data.type === 'user') {
+      if (!isValidCPF(value)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['email'],
+          message: 'CPF inválido.',
+        });
+      }
+      return;
+    }
+
+    if (!isValidCNPJ(value)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['email'],
+        message: 'CNPJ inválido.',
+      });
+    }
+  });
 
 export type LoginDTO = z.infer<typeof loginSchema>;
+
+export type UserLoginIdentifier =
+  | { kind: 'email'; value: string }
+  | { kind: 'cpf'; value: string };
+
+export type CompanyLoginIdentifier =
+  | { kind: 'email'; value: string }
+  | { kind: 'cnpj'; value: string };
+
+export function parseUserLoginIdentifier(raw: string): UserLoginIdentifier {
+  const trimmed = raw.trim();
+  if (trimmed.includes('@')) {
+    return { kind: 'email', value: trimmed.toLowerCase() };
+  }
+  return { kind: 'cpf', value: normalizeCPF(trimmed) };
+}
+
+export function parseCompanyLoginIdentifier(raw: string): CompanyLoginIdentifier {
+  const trimmed = raw.trim();
+  if (trimmed.includes('@')) {
+    return { kind: 'email', value: trimmed.toLowerCase() };
+  }
+  return { kind: 'cnpj', value: normalizeCNPJ(trimmed) };
+}
 
 // ─── Refresh Token ────────────────────────────────────────────────────────────
 export const refreshTokenSchema = z.object({

@@ -22,7 +22,10 @@ import type {
   RequestPasswordResetDTO,
   VerifyPasswordResetCodeDTO,
   ResetPasswordWithCodeDTO,
+  UserLoginIdentifier,
+  CompanyLoginIdentifier,
 } from './auth.schema';
+import { parseUserLoginIdentifier, parseCompanyLoginIdentifier } from './auth.schema';
 
 // ─── Tipos de resposta ────────────────────────────────────────────────────────
 
@@ -138,15 +141,18 @@ export async function registerCompany(dto: RegisterCompanyDTO): Promise<AuthResp
 
 export async function login(dto: LoginDTO): Promise<AuthResponse> {
   if (dto.type === 'user') {
-    return _loginUser(dto.email, dto.password);
+    return _loginUser(parseUserLoginIdentifier(dto.email), dto.password);
   }
-  return _loginCompany(dto.email, dto.password);
+  return _loginCompany(parseCompanyLoginIdentifier(dto.email), dto.password);
 }
 
-async function _loginUser(email: string, password: string): Promise<AuthResponse> {
-  const user = await prisma.user.findUnique({ where: { email } });
+async function _loginUser(identifier: UserLoginIdentifier, password: string): Promise<AuthResponse> {
+  const user =
+    identifier.kind === 'email'
+      ? await prisma.user.findUnique({ where: { email: identifier.value } })
+      : await prisma.user.findUnique({ where: { cpf: identifier.value } });
 
-  // Mensagem genérica — não revela se o e-mail existe (RN.01 Login)
+  // Mensagem genérica — não revela se a conta existe (RN.01 Login)
   if (!user || !user.isActive) {
     throw new AppError(401, 'Usuário ou senha inválidos.', 'INVALID_CREDENTIALS');
   }
@@ -221,8 +227,11 @@ async function _loginUser(email: string, password: string): Promise<AuthResponse
   };
 }
 
-async function _loginCompany(email: string, password: string): Promise<AuthResponse> {
-  const company = await prisma.company.findUnique({ where: { email } });
+async function _loginCompany(identifier: CompanyLoginIdentifier, password: string): Promise<AuthResponse> {
+  const company =
+    identifier.kind === 'email'
+      ? await prisma.company.findUnique({ where: { email: identifier.value } })
+      : await prisma.company.findUnique({ where: { cnpj: identifier.value } });
 
   if (!company || !company.isActive) {
     throw new AppError(401, 'Usuário ou senha inválidos.', 'INVALID_CREDENTIALS');

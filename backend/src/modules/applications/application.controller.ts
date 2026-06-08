@@ -83,3 +83,26 @@ export async function listMyApplications(
     next(err);
   }
 }
+
+export async function getMyApplication(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    if (!req.auth || req.auth.type !== 'user') {
+      return next(new AppError(403, 'Acesso não autorizado para este perfil.', 'FORBIDDEN'));
+    }
+
+    const applicationId = req.params.id;
+    if (!applicationId) {
+      return next(new AppError(400, 'ID da candidatura não informado.', 'MISSING_APPLICATION_ID'));
+    }
+
+    const application = await ApplicationService.getMyApplicationById(req.auth.sub, applicationId);
+
+    res.status(200).json({ status: 'success', data: application });
+  } catch (err) {
+    next(err);
+  }
+}

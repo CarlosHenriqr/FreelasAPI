@@ -2,6 +2,7 @@ import { prisma } from '../../config/database';
 import { sanitizeString } from '../../utils/sanitize.util';
 import { AppError } from '../../middlewares/errorHandler.middleware';
 import { createNotificationForCompany } from '../notifications/notification.service';
+import { computeApplicantMatchScores } from '../../utils/recommendation.util';
 import type {
   ApplyToJobDTO,
   CreateJobDTO,
@@ -165,6 +166,11 @@ export async function listJobs(query: ListJobsQueryDTO) {
       status: true,
       companyId: true,
       createdAt: true,
+      _count: {
+        select: {
+          applications: true,
+        },
+      },
       technologies: {
         select: {
           type: true,
@@ -469,6 +475,8 @@ export async function getJobApplications(companyId: string, jobId: string, query
     orderBy: { createdAt: 'desc' },
     select: {
       id: true,
+      jobId: true,
+      userId: true,
       status: true,
       resumeUrl: true,
       coverLetter: true,
@@ -487,13 +495,22 @@ export async function getJobApplications(companyId: string, jobId: string, query
     },
   });
 
-  return applications.map((item) => ({
-    ...item,
-    user: {
-      ...item.user,
-      cpf: item.user.cpf ? item.user.cpf.replace(/^(\d{3})\d{6}(\d{2})$/, '$1******$2') : item.user.cpf,
-    },
-  }));
+  const userIds = applications.map((item) => item.userId);
+  const matchScores = await computeApplicantMatchScores(jobId, userIds);
+
+  return applications.map((item) => {
+    const match = matchScores[item.userId];
+    return {
+      ...item,
+      matchScore: match?.matchScore ?? 0,
+      matchPercent: match?.matchPercent ?? 0,
+      matchedTechnologies: match?.matchedTechnologies ?? [],
+      user: {
+        ...item.user,
+        cpf: item.user.cpf ? item.user.cpf.replace(/^(\d{3})\d{6}(\d{2})$/, '$1******$2') : item.user.cpf,
+      },
+    };
+  });
 }
 
 export async function getJobCandidates(companyId: string, jobId: string, query: ListJobApplicationsQueryDTO) {

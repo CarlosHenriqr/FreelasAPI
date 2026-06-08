@@ -6,8 +6,6 @@ import {
   refreshRateLimiter,
   passwordResetRateLimiter,
 } from '../../middlewares/rateLimiter.middleware';
-import { authenticate } from '../../middlewares/auth.middleware';
-
 const router = Router();
 
 /**
@@ -44,9 +42,9 @@ router.post('/refresh', refreshRateLimiter, AuthController.refresh);
  * @route  POST /auth/logout
  * @desc   Revoga o refresh token no banco
  * @body   { refreshToken }
- * @access Privado (requer access token válido)
+ * @access Público (revoga o refresh token enviado no body)
  */
-router.post('/logout', authenticate, AuthController.logout);
+router.post('/logout', AuthController.logout);
 
 /**
  * @route  POST /auth/password/forgot

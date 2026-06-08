@@ -42,7 +42,7 @@ export async function uploadAvatarToStorage(
   if (!supabaseAdmin) {
     throw new AppError(
       503,
-      'Upload de avatar indisponível. Configure SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY.',
+      'Upload de avatar indisponível. Configure SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY (ou SUPABASE_ANON_KEY).',
       'AVATAR_STORAGE_UNAVAILABLE',
     );
   }
@@ -58,6 +58,7 @@ export async function uploadAvatarToStorage(
     });
 
   if (error) {
+    console.error('[avatar] upload failed:', error.message);
     throw new AppError(500, 'Falha ao enviar avatar.', 'AVATAR_UPLOAD_FAILED');
   }
 
