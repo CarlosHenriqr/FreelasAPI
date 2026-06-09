@@ -10,14 +10,15 @@ Conecta **freelancers** e **empresas** para publicação de vagas, candidaturas,
 Taskio-API/
 ├── backend/          # API REST (Node.js, Express, Prisma, PostgreSQL)
 │   └── docs/         # Documentação técnica e Postman
-├── frontend/         # Interface web (a ser implementada)
+├── render.yaml       # Blueprint de deploy no Render
 └── README.md         # Este arquivo
 ```
 
 | Pasta | Descrição |
 |-------|-----------|
 | [`backend/`](backend/) | API, banco de dados, migrações Prisma e documentação técnica da API |
-| [`frontend/`](frontend/) | Aplicação React (Vite, Tailwind, integração completa com a API) |
+
+> O frontend é um repositório separado. Este repo contém apenas o backend da API.
 
 ## Perfis do sistema (MVP)
 
@@ -27,12 +28,10 @@ Taskio-API/
 
 ## Início rápido
 
-### Backend
-
 ```bash
 cd backend
 npm install
-# configure o arquivo .env (veja backend/README.md)
+# configure o arquivo .env (veja backend/README.md e backend/.env.example)
 npm run prisma:generate
 npm run prisma:migrate
 npm run dev
@@ -40,16 +39,22 @@ npm run dev
 
 Documentação completa da API: **[backend/README.md](backend/README.md)**
 
-### Frontend
+## Deploy (Render + Supabase)
 
-```bash
-cd frontend
-npm install
-cp .env.example .env   # ou crie .env com VITE_API_URL=http://localhost:3333
-npm run dev
-```
+A API roda no **Render**; o PostgreSQL e o Storage ficam no **Supabase**.
 
-Documentação completa: **[frontend/README.md](frontend/README.md)**
+1. Configure `DATABASE_URL` e `DIRECT_URL` no Supabase (veja `backend/.env.example`).
+2. No Render, crie um **Web Service** apontando para este repositório.
+3. Defina **Root Directory** como `backend` (ou use o `render.yaml` na raiz).
+4. Preencha as variáveis sensíveis no painel: `DATABASE_URL`, `DIRECT_URL`, `FRONTEND_URL`, chaves Supabase e SMTP.
+
+Comandos usados no deploy (já definidos em `render.yaml`):
+
+| Etapa | Comando |
+|-------|---------|
+| Build | `npm install && npm run build` |
+| Pre-deploy | `npx prisma migrate deploy` |
+| Start | `npm start` |
 
 ## Documentação da API
 
@@ -58,11 +63,13 @@ Arquivos em `backend/docs/`:
 - [Escopo do MVP](backend/docs/mvp-escopo.md)
 - [Endpoints para teste](backend/docs/endpoints-teste.md)
 - [Pendências do MVP](backend/docs/pendencias-implementacao-mvp.md)
+- [Setup Supabase](backend/docs/setup-supabase-mcp.md)
 - [Collection Postman](backend/docs/postman/freelasapi.postman_collection.json)
 
 ## Stack
 
 | Camada | Tecnologias |
 |--------|-------------|
-| Backend | Node.js, TypeScript, Express, Prisma, PostgreSQL, Zod, JWT |
-| Frontend | React, TypeScript, Vite, Tailwind CSS 4, TanStack Query, Framer Motion |
+| Backend | Node.js, TypeScript, Express, Prisma, PostgreSQL (Supabase), Zod, JWT |
+| Storage | Supabase Storage (avatars) |
+| Deploy | Render (Web Service) |
