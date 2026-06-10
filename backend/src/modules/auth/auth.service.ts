@@ -213,7 +213,7 @@ async function _loginUser(identifier: UserLoginIdentifier, password: string): Pr
     data: { loginAttempts: 0, isBlocked: false, blockedUntil: null },
   });
 
-  const tokens = await _generateAndStoreUserTokens(user.id);
+  const tokens = await _generateAndStoreUserTokens(user.id, user.isAdmin);
 
   return {
     ...tokens,
@@ -528,17 +528,26 @@ export async function resetPasswordWithCode(dto: ResetPasswordWithCodeDTO): Prom
 
 // ─── Helpers privados ─────────────────────────────────────────────────────────
 
-async function _generateAndStoreUserTokens(userId: string): Promise<AuthTokens> {
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { isAdmin: true },
-  });
+async function _generateAndStoreUserTokens(
+  userId: string,
+  isAdmin?: boolean,
+): Promise<AuthTokens> {
+  let role: 'user' | 'admin' = 'user';
 
-  if (!user) {
-    throw new AppError(404, 'Usuário não encontrado.', 'USER_NOT_FOUND');
+  if (isAdmin !== undefined) {
+    role = isAdmin ? 'admin' : 'user';
+  } else {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { isAdmin: true },
+    });
+
+    if (!user) {
+      throw new AppError(404, 'Usuário não encontrado.', 'USER_NOT_FOUND');
+    }
+
+    role = user.isAdmin ? 'admin' : 'user';
   }
-
-  const role = user.isAdmin ? 'admin' : 'user';
   const accessToken = signAccessToken({ sub: userId, type: 'user', role });
   const newRefreshToken = signRefreshToken({ sub: userId, type: 'user', role });
 

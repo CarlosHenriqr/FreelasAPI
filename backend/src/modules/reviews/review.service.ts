@@ -119,6 +119,56 @@ export async function listReceivedReviews(actor: ReviewActor, query: ListReviews
   };
 }
 
+export async function getApplicationReviewStatus(actor: ReviewActor, applicationId: string) {
+  const application = await prisma.application.findUnique({
+    where: { id: applicationId },
+    select: {
+      id: true,
+      status: true,
+      userId: true,
+      job: { select: { companyId: true } },
+    },
+  });
+
+  if (!application) {
+    throw new AppError(404, 'Candidatura não encontrada.', 'APPLICATION_NOT_FOUND');
+  }
+
+  if (actor.type === 'user' && application.userId !== actor.id) {
+    throw new AppError(403, 'Você só pode consultar avaliações dos seus vínculos.', 'FORBIDDEN');
+  }
+  if (actor.type === 'company' && application.job.companyId !== actor.id) {
+    throw new AppError(403, 'Acesso negado. Esta candidatura não pertence à sua empresa.', 'FORBIDDEN');
+  }
+
+  const reviews = await prisma.review.findMany({
+    where: { applicationId },
+    select: {
+      id: true,
+      rating: true,
+      comment: true,
+      createdAt: true,
+      reviewerType: true,
+      reviewedType: true,
+    },
+  });
+
+  const userReview = reviews.find((r) => r.reviewerType === 'USER') ?? null;
+  const companyReview = reviews.find((r) => r.reviewerType === 'COMPANY') ?? null;
+
+  return {
+    applicationId,
+    status: application.status,
+    userReviewed: !!userReview,
+    companyReviewed: !!companyReview,
+    userReview,
+    companyReview,
+    canReview:
+      application.status === 'COMPLETED' &&
+      (actor.type === 'user' ? !userReview : !companyReview),
+  };
+}
+
 export async function getReviewSummary(actor: ReviewActor) {
   const where = receivedWhere(actor);
 

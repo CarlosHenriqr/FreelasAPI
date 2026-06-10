@@ -19,15 +19,70 @@ const techIdsSchema = z
   .max(30, 'Máximo de 30 tecnologias por campo.')
   .default([]);
 
-const createJobBaseSchema = z.object({
-  title: z.string().min(3).max(120),
-  description: z.string().min(20).max(5000),
-  requirements: z.string().min(0).max(5000).default(''),
-  deadline: z.coerce.date(),
-  expiresAt: z.coerce.date(),
-  requiredTechnologyIds: techIdsSchema,
-  desirableTechnologyIds: techIdsSchema,
+export const jobPaymentTypeValues = ['FIXED_RANGE', 'HOURLY'] as const;
+
+const paymentFieldsSchema = z.object({
+  paymentType: z.enum(jobPaymentTypeValues, {
+    errorMap: () => ({ message: 'Informe se o pagamento é por faixa fixa ou por hora.' }),
+  }),
+  currency: z.string().length(3).default('BRL'),
+  budgetMin: z.coerce.number().positive('Valor mínimo deve ser maior que zero.').optional(),
+  budgetMax: z.coerce.number().positive('Valor máximo deve ser maior que zero.').optional(),
+  hourlyRate: z.coerce.number().positive('Valor por hora deve ser maior que zero.').optional(),
 });
+
+const validateJobPayment = (
+  value: z.infer<typeof paymentFieldsSchema>,
+  ctx: z.RefinementCtx,
+) => {
+  if (value.paymentType === 'FIXED_RANGE') {
+    if (value.budgetMin == null) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Informe o valor mínimo do projeto.',
+        path: ['budgetMin'],
+      });
+    }
+    if (value.budgetMax == null) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Informe o valor máximo do projeto.',
+        path: ['budgetMax'],
+      });
+    }
+    if (
+      value.budgetMin != null &&
+      value.budgetMax != null &&
+      value.budgetMax < value.budgetMin
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'O valor máximo deve ser maior ou igual ao mínimo.',
+        path: ['budgetMax'],
+      });
+    }
+  }
+
+  if (value.paymentType === 'HOURLY' && value.hourlyRate == null) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'Informe o valor por hora.',
+      path: ['hourlyRate'],
+    });
+  }
+};
+
+const createJobBaseSchema = z
+  .object({
+    title: z.string().min(3).max(120),
+    description: z.string().min(20).max(5000),
+    requirements: z.string().min(0).max(5000).default(''),
+    deadline: z.coerce.date(),
+    expiresAt: z.coerce.date(),
+    requiredTechnologyIds: techIdsSchema,
+    desirableTechnologyIds: techIdsSchema,
+  })
+  .merge(paymentFieldsSchema);
 
 const validateJobTechnologies = (
   value: { requiredTechnologyIds: string[]; desirableTechnologyIds: string[] },
@@ -43,7 +98,9 @@ const validateJobTechnologies = (
   }
 };
 
-export const createJobSchema = createJobBaseSchema.superRefine(validateJobTechnologies);
+export const createJobSchema = createJobBaseSchema
+  .superRefine(validateJobTechnologies)
+  .superRefine(validateJobPayment);
 
 export type CreateJobDTO = z.infer<typeof createJobSchema>;
 
@@ -55,6 +112,19 @@ export const updateJobSchema = createJobBaseSchema.partial().superRefine((value,
     },
     ctx,
   );
+
+  if (value.paymentType) {
+    validateJobPayment(
+      {
+        paymentType: value.paymentType,
+        currency: value.currency ?? 'BRL',
+        budgetMin: value.budgetMin,
+        budgetMax: value.budgetMax,
+        hourlyRate: value.hourlyRate,
+      },
+      ctx,
+    );
+  }
 });
 export type UpdateJobDTO = z.infer<typeof updateJobSchema>;
 
@@ -64,6 +134,8 @@ export const listJobsQuerySchema = z.object({
   status: jobStatusSchema.optional(),
   technologyIds: z.union([z.string(), z.array(z.string())]).optional(),
   matchMode: z.enum(matchModeValues).optional().default('any'),
+  limit: z.coerce.number().int().min(1).max(200).optional(),
+  page: z.coerce.number().int().min(1).optional(),
 });
 
 export type ListJobsQueryDTO = z.infer<typeof listJobsQuerySchema>;

@@ -19,12 +19,35 @@ router.get(
   ApplicationController.getMyApplication,
 );
 
+// GET /applications/company — candidaturas da empresa (agregado)
+router.get(
+  '/company',
+  authenticate,
+  requireType('company'),
+  ApplicationController.listCompanyApplications,
+);
+
+// GET /applications/:id — detalhe da candidatura (empresa)
+router.get(
+  '/:id',
+  authenticate,
+  requireType('company'),
+  ApplicationController.getCompanyApplication,
+);
+
 // PATCH /applications/:id/status — empresa altera status
 router.patch(
   '/:id/status',
   authenticate,
   requireType('company'),
   ApplicationController.updateApplicationStatus,
+);
+
+// PATCH /applications/:id/confirm-completion — empresa ou freelancer confirma conclusão
+router.patch(
+  '/:id/confirm-completion',
+  authenticate,
+  ApplicationController.confirmApplicationCompletion,
 );
 
 // PATCH /applications/:id/cancel — freelancer cancela candidatura

@@ -7,6 +7,7 @@ const router = Router();
 router.use(authenticate);
 
 router.post('/', ReviewController.createReview);
+router.get('/application/:applicationId', ReviewController.getApplicationReviewStatus);
 router.get('/received', ReviewController.listReceivedReviews);
 router.get('/summary', ReviewController.getReviewSummary);
 

@@ -172,12 +172,18 @@ export async function recommendCandidates(
       isActive: true,
       isBlocked: false,
       resumeUrl: { not: null },
+      techStack: {
+        some: {
+          technologyId: { in: allJobTechIds },
+        },
+      },
     },
     include: {
       techStack: {
         include: { technology: true },
       },
     },
+    take: Math.max(limit * 5, 50),
   });
 
   const candidates: RecommendedCandidate[] = usersWithStack

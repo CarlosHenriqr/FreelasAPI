@@ -40,6 +40,20 @@ export async function listJobs(req: Request, res: Response, next: NextFunction):
   }
 }
 
+export async function listMyJobs(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    if (!req.auth || req.auth.type !== 'company') {
+      return next(new AppError(403, 'Acesso não autorizado para este perfil.', 'FORBIDDEN'));
+    }
+
+    const jobs = await JobService.listCompanyJobs(req.auth.sub);
+
+    res.status(200).json({ status: 'success', data: jobs });
+  } catch (err) {
+    next(err);
+  }
+}
+
 export async function getJob(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const jobId = req.params.id;

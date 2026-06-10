@@ -7,6 +7,9 @@ const router = Router();
 // GET /vagas?search=...&active=true|false
 router.get('/', JobController.listJobs);
 
+// GET /vagas/me — vagas da empresa logada
+router.get('/me', authenticate, requireType('company'), JobController.listMyJobs);
+
 // POST /vagas (somente empresa)
 router.post('/', authenticate, requireType('company'), JobController.createJob);
 

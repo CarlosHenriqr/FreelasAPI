@@ -44,6 +44,25 @@ export async function listReceivedReviews(
   }
 }
 
+export async function getApplicationReviewStatus(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const actor = getActor(req);
+    const applicationId = req.params.applicationId;
+    if (!applicationId) {
+      return next(new AppError(400, 'ID da candidatura não informado.', 'MISSING_APPLICATION_ID'));
+    }
+
+    const data = await ReviewService.getApplicationReviewStatus(actor, applicationId);
+    res.status(200).json({ status: 'success', data });
+  } catch (err) {
+    next(err);
+  }
+}
+
 export async function getReviewSummary(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const actor = getActor(req);

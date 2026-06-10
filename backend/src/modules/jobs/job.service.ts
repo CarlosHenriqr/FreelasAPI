@@ -75,6 +75,11 @@ export async function createJob(companyId: string, dto: CreateJobDTO) {
       requirements,
       deadline: dto.deadline,
       expiresAt: dto.expiresAt,
+      paymentType: dto.paymentType,
+      currency: dto.currency ?? 'BRL',
+      budgetMin: dto.paymentType === 'FIXED_RANGE' ? dto.budgetMin : null,
+      budgetMax: dto.paymentType === 'FIXED_RANGE' ? dto.budgetMax : null,
+      hourlyRate: dto.paymentType === 'HOURLY' ? dto.hourlyRate : null,
       companyId,
       technologies: {
         create: [
@@ -100,6 +105,11 @@ export async function createJob(companyId: string, dto: CreateJobDTO) {
       isFilled: true,
       status: true,
       companyId: true,
+      paymentType: true,
+      budgetMin: true,
+      budgetMax: true,
+      hourlyRate: true,
+      currency: true,
       createdAt: true,
       updatedAt: true,
       technologies: {
@@ -119,6 +129,14 @@ export async function createJob(companyId: string, dto: CreateJobDTO) {
 
   return job;
 }
+
+const jobPaymentSelect = {
+  paymentType: true,
+  budgetMin: true,
+  budgetMax: true,
+  hourlyRate: true,
+  currency: true,
+} as const;
 
 export async function listJobs(query: ListJobsQueryDTO) {
   const search = query.search ? sanitizeString(query.search) : undefined;
@@ -155,6 +173,7 @@ export async function listJobs(query: ListJobsQueryDTO) {
         : {}),
     },
     orderBy: { createdAt: 'desc' },
+    ...(query.limit ? { take: query.limit, skip: ((query.page ?? 1) - 1) * query.limit } : {}),
     select: {
       id: true,
       title: true,
@@ -165,6 +184,7 @@ export async function listJobs(query: ListJobsQueryDTO) {
       isFilled: true,
       status: true,
       companyId: true,
+      ...jobPaymentSelect,
       createdAt: true,
       _count: {
         select: {
@@ -189,6 +209,47 @@ export async function listJobs(query: ListJobsQueryDTO) {
   return jobs;
 }
 
+const companyJobListSelect = {
+  id: true,
+  title: true,
+  description: true,
+  requirements: true,
+  deadline: true,
+  expiresAt: true,
+  isActive: true,
+  isFilled: true,
+  status: true,
+  companyId: true,
+  ...jobPaymentSelect,
+  createdAt: true,
+  updatedAt: true,
+  _count: {
+    select: {
+      applications: true,
+    },
+  },
+  technologies: {
+    select: {
+      type: true,
+      technology: {
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+        },
+      },
+    },
+  },
+} as const;
+
+export async function listCompanyJobs(companyId: string) {
+  return prisma.job.findMany({
+    where: { companyId },
+    orderBy: { createdAt: 'desc' },
+    select: companyJobListSelect,
+  });
+}
+
 export async function getJobById(jobId: string) {
   const job = await prisma.job.findUnique({
     where: { id: jobId },
@@ -202,6 +263,7 @@ export async function getJobById(jobId: string) {
       isActive: true,
       isFilled: true,
       status: true,
+      ...jobPaymentSelect,
       createdAt: true,
       updatedAt: true,
       company: {
@@ -258,6 +320,24 @@ export async function updateJob(companyId: string, jobId: string, dto: UpdateJob
   if (dto.requirements !== undefined) data.requirements = sanitizeString(dto.requirements);
   if (dto.deadline !== undefined) data.deadline = dto.deadline;
   if (dto.expiresAt !== undefined) data.expiresAt = dto.expiresAt;
+  if (dto.paymentType !== undefined) {
+    data.paymentType = dto.paymentType;
+    data.currency = dto.currency ?? 'BRL';
+    if (dto.paymentType === 'FIXED_RANGE') {
+      data.budgetMin = dto.budgetMin ?? null;
+      data.budgetMax = dto.budgetMax ?? null;
+      data.hourlyRate = null;
+    } else {
+      data.hourlyRate = dto.hourlyRate ?? null;
+      data.budgetMin = null;
+      data.budgetMax = null;
+    }
+  } else {
+    if (dto.currency !== undefined) data.currency = dto.currency;
+    if (dto.budgetMin !== undefined) data.budgetMin = dto.budgetMin;
+    if (dto.budgetMax !== undefined) data.budgetMax = dto.budgetMax;
+    if (dto.hourlyRate !== undefined) data.hourlyRate = dto.hourlyRate;
+  }
 
   const wantsTechUpdate = dto.requiredTechnologyIds !== undefined || dto.desirableTechnologyIds !== undefined;
 
@@ -326,6 +406,7 @@ export async function updateJob(companyId: string, jobId: string, dto: UpdateJob
         isFilled: true,
         status: true,
         companyId: true,
+        ...jobPaymentSelect,
         updatedAt: true,
         technologies: {
           select: {
@@ -480,6 +561,8 @@ export async function getJobApplications(companyId: string, jobId: string, query
       status: true,
       resumeUrl: true,
       coverLetter: true,
+      companyCompletedAt: true,
+      userCompletedAt: true,
       createdAt: true,
       updatedAt: true,
       user: {
