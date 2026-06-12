@@ -186,6 +186,13 @@ export async function listJobs(query: ListJobsQueryDTO) {
       companyId: true,
       ...jobPaymentSelect,
       createdAt: true,
+      company: {
+        select: {
+          id: true,
+          name: true,
+          avatarUrl: true,
+        },
+      },
       _count: {
         select: {
           applications: true,

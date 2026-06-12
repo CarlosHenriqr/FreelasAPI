@@ -137,9 +137,12 @@ export const logoutSchema = z.object({
 
 export type LogoutDTO = z.infer<typeof logoutSchema>;
 
-// ─── Recuperação de senha (freelancer) ────────────────────────────────────────
+// ─── Recuperação de senha ─────────────────────────────────────────────────────
+const passwordResetAccountTypeSchema = z.enum(['user', 'company']).default('user');
+
 export const requestPasswordResetSchema = z.object({
   email: z.string().email('E-mail inválido.').toLowerCase(),
+  type: passwordResetAccountTypeSchema,
 });
 
 export type RequestPasswordResetDTO = z.infer<typeof requestPasswordResetSchema>;
@@ -149,6 +152,7 @@ export const verifyPasswordResetCodeSchema = z.object({
   code: z
     .string()
     .regex(/^\d{6}$/, 'Código inválido. Informe 6 dígitos.'),
+  type: passwordResetAccountTypeSchema,
 });
 
 export type VerifyPasswordResetCodeDTO = z.infer<typeof verifyPasswordResetCodeSchema>;
@@ -161,6 +165,7 @@ export const resetPasswordWithCodeSchema = z
       .regex(/^\d{6}$/, 'Código inválido. Informe 6 dígitos.'),
     newPassword: passwordSchema,
     confirmNewPassword: z.string().min(8).max(200),
+    type: passwordResetAccountTypeSchema,
   })
   .refine((value) => value.newPassword === value.confirmNewPassword, {
     message: 'Confirmação de senha não confere.',

@@ -108,10 +108,33 @@ export async function updateUserProfile(userId: string, dto: UpdateUserProfileDT
   if (dto.name !== undefined) data.name = sanitizeString(dto.name);
   if (dto.phone !== undefined) data.phone = dto.phone || null;
   if (dto.avatarUrl !== undefined) data.avatarUrl = dto.avatarUrl || null;
-  if ((dto as { bio?: string }).bio !== undefined) data.bio = sanitizeString((dto as { bio?: string }).bio ?? '') || null;
+  if ((dto as { bio?: string }).bio !== undefined) {
+    const sanitizedBio = sanitizeString((dto as { bio?: string }).bio ?? '');
+    if (!sanitizedBio) {
+      throw new AppError(422, 'Bio obrigatória (mínimo 10 caracteres).', 'BIO_TOO_SHORT');
+    }
+    data.bio = sanitizedBio;
+  }
 
   if (Object.keys(data).length === 0) {
     throw new AppError(422, 'Nenhum campo para atualizar.', 'NO_FIELDS_TO_UPDATE');
+  }
+
+  const existingUser = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { resumeUrl: true },
+  });
+
+  if (!existingUser) {
+    throw new AppError(404, 'Usuário não encontrado.', 'USER_NOT_FOUND');
+  }
+
+  if (!existingUser.resumeUrl && (dto.bio !== undefined || dto.phone !== undefined)) {
+    throw new AppError(
+      422,
+      'Currículo obrigatório para completar o perfil. Publique a URL do currículo antes de salvar.',
+      'MISSING_RESUME_URL',
+    );
   }
 
   const updated = await prisma.user.update({
@@ -279,6 +302,23 @@ export async function deleteUserResume(userId: string) {
 }
 
 export async function updateTechStack(userId: string, dto: UpdateTechStackDTO) {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { resumeUrl: true },
+  });
+
+  if (!user) {
+    throw new AppError(404, 'Usuário não encontrado.', 'USER_NOT_FOUND');
+  }
+
+  if (!user.resumeUrl) {
+    throw new AppError(
+      422,
+      'Currículo obrigatório para completar o perfil. Publique a URL do currículo antes de salvar.',
+      'MISSING_RESUME_URL',
+    );
+  }
+
   const skills =
     dto.skills ??
     (dto.technologyIds ?? []).map((technologyId) => ({

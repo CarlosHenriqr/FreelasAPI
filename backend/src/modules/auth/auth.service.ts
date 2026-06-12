@@ -299,7 +299,7 @@ async function _loginCompany(identifier: CompanyLoginIdentifier, password: strin
 
 // ─── Refresh Token ────────────────────────────────────────────────────────────
 
-export async function refreshTokens(dto: RefreshTokenDTO): Promise<AuthTokens> {
+export async function refreshTokens(dto: RefreshTokenDTO): Promise<AuthResponse> {
   // Verifica assinatura JWT antes de consultar o banco
   let payload;
   try {
@@ -317,12 +317,29 @@ export async function refreshTokens(dto: RefreshTokenDTO): Promise<AuthTokens> {
       throw new AppError(401, 'Refresh token inválido ou expirado.', 'INVALID_TOKEN');
     }
 
-    // Rotate: apaga o token antigo e gera um novo par
     await prisma.userRefreshToken.delete({ where: { id: stored.id } });
-    return _generateAndStoreUserTokens(payload.sub);
+    const tokens = await _generateAndStoreUserTokens(payload.sub);
+    const user = await prisma.user.findUnique({
+      where: { id: payload.sub },
+      select: { id: true, name: true, email: true, isAdmin: true, isActive: true },
+    });
+
+    if (!user || !user.isActive) {
+      throw new AppError(401, 'Refresh token inválido ou expirado.', 'INVALID_TOKEN');
+    }
+
+    return {
+      ...tokens,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        type: 'user',
+        role: user.isAdmin ? 'admin' : 'user',
+      },
+    };
   }
 
-  // type === 'company'
   const stored = await prisma.companyRefreshToken.findUnique({
     where: { token: dto.refreshToken },
   });
@@ -332,7 +349,26 @@ export async function refreshTokens(dto: RefreshTokenDTO): Promise<AuthTokens> {
   }
 
   await prisma.companyRefreshToken.delete({ where: { id: stored.id } });
-  return _generateAndStoreCompanyTokens(payload.sub);
+  const tokens = await _generateAndStoreCompanyTokens(payload.sub);
+  const company = await prisma.company.findUnique({
+    where: { id: payload.sub },
+    select: { id: true, name: true, email: true, isActive: true },
+  });
+
+  if (!company || !company.isActive) {
+    throw new AppError(401, 'Refresh token inválido ou expirado.', 'INVALID_TOKEN');
+  }
+
+  return {
+    ...tokens,
+    user: {
+      id: company.id,
+      name: company.name,
+      email: company.email,
+      type: 'company',
+      role: 'company',
+    },
+  };
 }
 
 // ─── Logout ───────────────────────────────────────────────────────────────────
@@ -343,16 +379,22 @@ export async function logout(dto: LogoutDTO): Promise<void> {
   await prisma.companyRefreshToken.deleteMany({ where: { token: dto.refreshToken } });
 }
 
-// ─── Recuperação de senha (freelancer) ────────────────────────────────────────
+// ─── Recuperação de senha ─────────────────────────────────────────────────────
 
 export async function requestPasswordReset(dto: RequestPasswordResetDTO): Promise<void> {
-  const email = dto.email.toLowerCase().trim();
+  if (dto.type === 'company') {
+    return _requestCompanyPasswordReset(dto.email);
+  }
+  return _requestUserPasswordReset(dto.email);
+}
+
+async function _requestUserPasswordReset(emailInput: string): Promise<void> {
+  const email = emailInput.toLowerCase().trim();
   const user = await prisma.user.findUnique({
     where: { email },
     select: { id: true, name: true, email: true, isActive: true },
   });
 
-  // Resposta neutra para evitar enumeração de e-mails.
   if (!user || !user.isActive) {
     return;
   }
@@ -388,8 +430,57 @@ export async function requestPasswordReset(dto: RequestPasswordResetDTO): Promis
   });
 }
 
+async function _requestCompanyPasswordReset(emailInput: string): Promise<void> {
+  const email = emailInput.toLowerCase().trim();
+  const company = await prisma.company.findUnique({
+    where: { email },
+    select: { id: true, name: true, email: true, isActive: true },
+  });
+
+  if (!company || !company.isActive) {
+    return;
+  }
+
+  const code = String(randomInt(100000, 1000000));
+  const codeHash = await bcrypt.hash(code, env.BCRYPT_SALT_ROUNDS);
+  const expiresAt = new Date(Date.now() + env.PASSWORD_RESET_CODE_TTL_MINUTES * 60 * 1000);
+
+  await prisma.$transaction(async (tx) => {
+    await tx.companyPasswordResetCode.updateMany({
+      where: {
+        companyId: company.id,
+        usedAt: null,
+      },
+      data: {
+        usedAt: new Date(),
+      },
+    });
+
+    await tx.companyPasswordResetCode.create({
+      data: {
+        companyId: company.id,
+        codeHash,
+        expiresAt,
+      },
+    });
+  });
+
+  await sendPasswordResetCodeEmail({
+    to: company.email,
+    name: company.name,
+    code,
+  });
+}
+
 export async function verifyPasswordResetCode(dto: VerifyPasswordResetCodeDTO): Promise<void> {
-  const email = dto.email.toLowerCase().trim();
+  if (dto.type === 'company') {
+    return _verifyCompanyPasswordResetCode(dto.email, dto.code);
+  }
+  return _verifyUserPasswordResetCode(dto.email, dto.code);
+}
+
+async function _verifyUserPasswordResetCode(emailInput: string, codeInput: string): Promise<void> {
+  const email = emailInput.toLowerCase().trim();
   const user = await prisma.user.findUnique({
     where: { email },
     select: { id: true },
@@ -425,7 +516,7 @@ export async function verifyPasswordResetCode(dto: VerifyPasswordResetCodeDTO): 
     throw new AppError(400, 'Código inválido ou expirado.', 'INVALID_RESET_CODE');
   }
 
-  const valid = await bcrypt.compare(dto.code, resetCode.codeHash);
+  const valid = await bcrypt.compare(codeInput, resetCode.codeHash);
   if (!valid) {
     const nextAttempts = resetCode.attempts + 1;
     await prisma.userPasswordResetCode.update({
@@ -444,7 +535,70 @@ export async function verifyPasswordResetCode(dto: VerifyPasswordResetCodeDTO): 
   });
 }
 
+async function _verifyCompanyPasswordResetCode(emailInput: string, codeInput: string): Promise<void> {
+  const email = emailInput.toLowerCase().trim();
+  const company = await prisma.company.findUnique({
+    where: { email },
+    select: { id: true },
+  });
+
+  if (!company) {
+    throw new AppError(400, 'Código inválido ou expirado.', 'INVALID_RESET_CODE');
+  }
+
+  const resetCode = await prisma.companyPasswordResetCode.findFirst({
+    where: {
+      companyId: company.id,
+      usedAt: null,
+      expiresAt: { gt: new Date() },
+    },
+    orderBy: { createdAt: 'desc' },
+    select: {
+      id: true,
+      codeHash: true,
+      attempts: true,
+    },
+  });
+
+  if (!resetCode) {
+    throw new AppError(400, 'Código inválido ou expirado.', 'INVALID_RESET_CODE');
+  }
+
+  if (resetCode.attempts >= env.PASSWORD_RESET_MAX_ATTEMPTS) {
+    await prisma.companyPasswordResetCode.update({
+      where: { id: resetCode.id },
+      data: { usedAt: new Date() },
+    });
+    throw new AppError(400, 'Código inválido ou expirado.', 'INVALID_RESET_CODE');
+  }
+
+  const valid = await bcrypt.compare(codeInput, resetCode.codeHash);
+  if (!valid) {
+    const nextAttempts = resetCode.attempts + 1;
+    await prisma.companyPasswordResetCode.update({
+      where: { id: resetCode.id },
+      data: {
+        attempts: nextAttempts,
+        ...(nextAttempts >= env.PASSWORD_RESET_MAX_ATTEMPTS ? { usedAt: new Date() } : {}),
+      },
+    });
+    throw new AppError(400, 'Código inválido ou expirado.', 'INVALID_RESET_CODE');
+  }
+
+  await prisma.companyPasswordResetCode.update({
+    where: { id: resetCode.id },
+    data: { verifiedAt: new Date() },
+  });
+}
+
 export async function resetPasswordWithCode(dto: ResetPasswordWithCodeDTO): Promise<void> {
+  if (dto.type === 'company') {
+    return _resetCompanyPasswordWithCode(dto);
+  }
+  return _resetUserPasswordWithCode(dto);
+}
+
+async function _resetUserPasswordWithCode(dto: ResetPasswordWithCodeDTO): Promise<void> {
   const email = dto.email.toLowerCase().trim();
   const user = await prisma.user.findUnique({
     where: { email },
@@ -520,6 +674,88 @@ export async function resetPasswordWithCode(dto: ResetPasswordWithCodeDTO): Prom
     });
 
     await tx.userPasswordResetCode.update({
+      where: { id: resetCode.id },
+      data: { usedAt: new Date() },
+    });
+  });
+}
+
+async function _resetCompanyPasswordWithCode(dto: ResetPasswordWithCodeDTO): Promise<void> {
+  const email = dto.email.toLowerCase().trim();
+  const company = await prisma.company.findUnique({
+    where: { email },
+    select: {
+      id: true,
+      password: true,
+    },
+  });
+
+  if (!company) {
+    throw new AppError(400, 'Código inválido ou expirado.', 'INVALID_RESET_CODE');
+  }
+
+  const resetCode = await prisma.companyPasswordResetCode.findFirst({
+    where: {
+      companyId: company.id,
+      usedAt: null,
+      expiresAt: { gt: new Date() },
+    },
+    orderBy: { createdAt: 'desc' },
+    select: {
+      id: true,
+      codeHash: true,
+      attempts: true,
+      verifiedAt: true,
+    },
+  });
+
+  if (!resetCode) {
+    throw new AppError(400, 'Código inválido ou expirado.', 'INVALID_RESET_CODE');
+  }
+  if (resetCode.attempts >= env.PASSWORD_RESET_MAX_ATTEMPTS) {
+    await prisma.companyPasswordResetCode.update({
+      where: { id: resetCode.id },
+      data: { usedAt: new Date() },
+    });
+    throw new AppError(400, 'Código inválido ou expirado.', 'INVALID_RESET_CODE');
+  }
+
+  const valid = await bcrypt.compare(dto.code, resetCode.codeHash);
+  if (!valid) {
+    const nextAttempts = resetCode.attempts + 1;
+    await prisma.companyPasswordResetCode.update({
+      where: { id: resetCode.id },
+      data: {
+        attempts: nextAttempts,
+        ...(nextAttempts >= env.PASSWORD_RESET_MAX_ATTEMPTS ? { usedAt: new Date() } : {}),
+      },
+    });
+    throw new AppError(400, 'Código inválido ou expirado.', 'INVALID_RESET_CODE');
+  }
+
+  if (!resetCode.verifiedAt) {
+    throw new AppError(409, 'Valide o código antes de alterar a senha.', 'RESET_CODE_NOT_VERIFIED');
+  }
+
+  const isSamePassword = await bcrypt.compare(dto.newPassword, company.password);
+  if (isSamePassword) {
+    throw new AppError(422, 'A nova senha deve ser diferente da senha atual.', 'PASSWORD_SAME_AS_CURRENT');
+  }
+
+  const newHashedPassword = await bcrypt.hash(dto.newPassword, env.BCRYPT_SALT_ROUNDS);
+
+  await prisma.$transaction(async (tx) => {
+    await tx.company.update({
+      where: { id: company.id },
+      data: {
+        password: newHashedPassword,
+        loginAttempts: 0,
+        isBlocked: false,
+        blockedUntil: null,
+      },
+    });
+
+    await tx.companyPasswordResetCode.update({
       where: { id: resetCode.id },
       data: { usedAt: new Date() },
     });

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { isValidResumeUrl, RESUME_URL_ERROR } from '../../utils/resumeUrl.util';
 import { isAllowedJobRole } from './jobRoles.catalog';
 
 const urlSchema = z.string().url('URL inválida.').max(500, 'URL muito longa.').or(z.literal(''));
@@ -24,7 +25,11 @@ export const updateUserProfileSchema = z.object({
 export type UpdateUserProfileDTO = z.infer<typeof updateUserProfileSchema>;
 
 export const updateUserResumeSchema = z.object({
-  resumeUrl: z.string().url('URL do currículo inválida.').max(500),
+  resumeUrl: z
+    .string()
+    .url('URL do currículo inválida.')
+    .max(500)
+    .refine((url) => isValidResumeUrl(url), { message: RESUME_URL_ERROR }),
 });
 
 export type UpdateUserResumeDTO = z.infer<typeof updateUserResumeSchema>;
