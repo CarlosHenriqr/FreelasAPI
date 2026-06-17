@@ -17,6 +17,7 @@ import { errorHandler } from './middlewares/errorHandler.middleware';
 const app = express();
 
 // ─── CORS (frontend em dev/produção) ─────────────────────────────────────────
+console.log('FRONTEND_URL =>', process.env.FRONTEND_URL);
 app.use(cors());
 
 // ─── Segurança de headers HTTP (RNF02) ────────────────────────────────────────
