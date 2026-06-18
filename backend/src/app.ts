@@ -22,7 +22,7 @@ app.use(
     origin: process.env.FRONTEND_URL?.split(',') ?? ['http://localhost:5173', 'http://127.0.0.1:5173'],
     credentials: true,
   }),
-);;
+);
 
 // ─── Segurança de headers HTTP (RNF02) ────────────────────────────────────────
 app.use(helmet());
@@ -45,11 +45,11 @@ app.use(
   }),
 );
 
-// ─── Body parsing ────────────────────────────────────────────────────────
+// ─── Body parsing ─────────────────────────────────────────────────────────────
 app.use(express.json({ limit: '64kb' }));    // recusa payloads muito grandes
 app.use(express.urlencoded({ extended: true, limit: '64kb' }));
 
-// ─── Rotas ────────────────────────────────────────────────────────────
+// ─── Rotas ────────────────────────────────────────────────────────────────────
 app.use('/auth', authRoutes);
 app.use('/profile', profileRoutes);
 app.use('/technologies', technologyRoutes);
