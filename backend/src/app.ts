@@ -13,13 +13,16 @@ import reviewRoutes from './modules/reviews/review.routes';
 import matchingRoutes from './modules/matching/matching.routes';
 import adminRoutes from './modules/admin/admin.routes';
 import { errorHandler } from './middlewares/errorHandler.middleware';
+import { isAllowedCorsOrigin } from './config/cors';
 
 const app = express();
 
-// ─── CORS (frontend em dev/produção) ─────────────────────────────────────────
+// ─── CORS (frontend em dev/produção + previews Cloudflare Pages) ─────────────
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL?.split(',') ?? ['http://localhost:5173', 'http://127.0.0.1:5173'],
+    origin(origin, callback) {
+      callback(null, isAllowedCorsOrigin(origin));
+    },
     credentials: true,
   }),
 );
