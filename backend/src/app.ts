@@ -17,8 +17,12 @@ import { errorHandler } from './middlewares/errorHandler.middleware';
 const app = express();
 
 // ─── CORS (frontend em dev/produção) ─────────────────────────────────────────
-console.log('FRONTEND_URL =>', process.env.FRONTEND_URL);
-app.use(cors());
+app.use(
+  cors({
+    origin: process.env.FRONTEND_URL?.split(',') ?? ['http://localhost:5173', 'http://127.0.0.1:5173'],
+    credentials: true,
+  }),
+);;
 
 // ─── Segurança de headers HTTP (RNF02) ────────────────────────────────────────
 app.use(helmet());
