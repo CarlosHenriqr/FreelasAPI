@@ -2,7 +2,7 @@
 
 Plataforma de freelancers — projeto de TCC (Trabalho de Conclusão de Curso).
 
-Conecta **freelancers** e **empresas** para publicação de vagas, candidaturas, matching, avaliações e moderação administrativa.
+Conecta **freelancers** e **empresas** para publicação de vagas, candidaturas, matching e avaliações.
 
 ## Estrutura do repositório
 

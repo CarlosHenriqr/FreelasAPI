@@ -21,7 +21,7 @@ export async function createJob(req: Request, res: Response, next: NextFunction)
 
     res.status(201).json({
       status: 'success',
-      message: 'Vaga criada com sucesso.',
+      message: 'Projeto criado com sucesso.',
       data: job,
     });
   } catch (err) {
@@ -58,7 +58,7 @@ export async function getJob(req: Request, res: Response, next: NextFunction): P
   try {
     const jobId = req.params.id;
     if (!jobId) {
-      return next(new AppError(400, 'ID da vaga não informado.', 'MISSING_JOB_ID'));
+      return next(new AppError(400, 'ID do projeto não informado.', 'MISSING_JOB_ID'));
     }
 
     const job = await JobService.getJobById(jobId);
@@ -76,7 +76,7 @@ export async function updateJob(req: Request, res: Response, next: NextFunction)
 
     const jobId = req.params.id;
     if (!jobId) {
-      return next(new AppError(400, 'ID da vaga não informado.', 'MISSING_JOB_ID'));
+      return next(new AppError(400, 'ID do projeto não informado.', 'MISSING_JOB_ID'));
     }
 
     const dto = updateJobSchema.parse(req.body);
@@ -84,7 +84,7 @@ export async function updateJob(req: Request, res: Response, next: NextFunction)
 
     res.status(200).json({
       status: 'success',
-      message: 'Vaga atualizada com sucesso.',
+      message: 'Projeto atualizado com sucesso.',
       data: job,
     });
   } catch (err) {
@@ -100,14 +100,14 @@ export async function deleteJob(req: Request, res: Response, next: NextFunction)
 
     const jobId = req.params.id;
     if (!jobId) {
-      return next(new AppError(400, 'ID da vaga não informado.', 'MISSING_JOB_ID'));
+      return next(new AppError(400, 'ID do projeto não informado.', 'MISSING_JOB_ID'));
     }
 
     const job = await JobService.deleteJob(req.auth.sub, jobId);
 
     res.status(200).json({
       status: 'success',
-      message: 'Vaga desativada com sucesso.',
+      message: 'Projeto desativado com sucesso.',
       data: job,
     });
   } catch (err) {
@@ -123,7 +123,7 @@ export async function updateJobStatus(req: Request, res: Response, next: NextFun
 
     const jobId = req.params.id;
     if (!jobId) {
-      return next(new AppError(400, 'ID da vaga não informado.', 'MISSING_JOB_ID'));
+      return next(new AppError(400, 'ID do projeto não informado.', 'MISSING_JOB_ID'));
     }
 
     const dto = updateJobStatusSchema.parse(req.body);
@@ -131,7 +131,7 @@ export async function updateJobStatus(req: Request, res: Response, next: NextFun
 
     res.status(200).json({
       status: 'success',
-      message: 'Status da vaga atualizado com sucesso.',
+      message: 'Status do projeto atualizado com sucesso.',
       data: job,
     });
   } catch (err) {
@@ -147,7 +147,7 @@ export async function applyToJob(req: Request, res: Response, next: NextFunction
 
     const jobId = req.params.id;
     if (!jobId) {
-      return next(new AppError(400, 'ID da vaga não informado.', 'MISSING_JOB_ID'));
+      return next(new AppError(400, 'ID do projeto não informado.', 'MISSING_JOB_ID'));
     }
 
     const dto = applyToJobSchema.parse(req.body);
@@ -171,7 +171,7 @@ export async function getJobApplications(req: Request, res: Response, next: Next
 
     const jobId = req.params.id;
     if (!jobId) {
-      return next(new AppError(400, 'ID da vaga não informado.', 'MISSING_JOB_ID'));
+      return next(new AppError(400, 'ID do projeto não informado.', 'MISSING_JOB_ID'));
     }
 
     const query = listJobApplicationsQuerySchema.parse(req.query);
@@ -191,7 +191,7 @@ export async function getJobCandidates(req: Request, res: Response, next: NextFu
 
     const jobId = req.params.id;
     if (!jobId) {
-      return next(new AppError(400, 'ID da vaga não informado.', 'MISSING_JOB_ID'));
+      return next(new AppError(400, 'ID do projeto não informado.', 'MISSING_JOB_ID'));
     }
 
     const query = listJobApplicationsQuerySchema.parse(req.query);
@@ -204,6 +204,6 @@ export async function getJobCandidates(req: Request, res: Response, next: NextFu
 }
 
 export async function getJobMessages(_req: Request, _res: Response, next: NextFunction): Promise<void> {
-  return next(new AppError(501, 'Listagem de mensagens da vaga ainda não implementada.', 'NOT_IMPLEMENTED'));
+  return next(new AppError(501, 'Listagem de mensagens do projeto ainda não implementada.', 'NOT_IMPLEMENTED'));
 }
 

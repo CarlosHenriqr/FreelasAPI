@@ -2,6 +2,7 @@ import { prisma } from '../../config/database';
 import { sanitizeString } from '../../utils/sanitize.util';
 import { AppError } from '../../middlewares/errorHandler.middleware';
 import { createNotificationForCompany } from '../notifications/notification.service';
+import { assertCanCreateJob, assertCanApply } from '../plans/plan.service';
 import { computeApplicantMatchScores } from '../../utils/recommendation.util';
 import type {
   ApplyToJobDTO,
@@ -44,6 +45,8 @@ function toLegacyFlags(status: JobStatus): { isActive: boolean; isFilled: boolea
 }
 
 export async function createJob(companyId: string, dto: CreateJobDTO) {
+  await assertCanCreateJob(companyId);
+
   const title = sanitizeString(dto.title);
   const description = sanitizeString(dto.description);
   const requirements = sanitizeString(dto.requirements ?? '');
@@ -301,7 +304,7 @@ export async function getJobById(jobId: string) {
   });
 
   if (!job) {
-    throw new AppError(404, 'Vaga não encontrada.', 'JOB_NOT_FOUND');
+    throw new AppError(404, 'Projeto não encontrado.', 'JOB_NOT_FOUND');
   }
 
   return job;
@@ -314,10 +317,10 @@ export async function updateJob(companyId: string, jobId: string, dto: UpdateJob
   });
 
   if (!existing) {
-    throw new AppError(404, 'Vaga não encontrada.', 'JOB_NOT_FOUND');
+    throw new AppError(404, 'Projeto não encontrado.', 'JOB_NOT_FOUND');
   }
   if (existing.companyId !== companyId) {
-    throw new AppError(403, 'Acesso negado. Esta vaga não pertence à sua empresa.', 'FORBIDDEN');
+    throw new AppError(403, 'Acesso negado. Este projeto não pertence à sua empresa.', 'FORBIDDEN');
   }
 
   const data: Record<string, unknown> = {};
@@ -441,10 +444,10 @@ export async function deleteJob(companyId: string, jobId: string) {
   });
 
   if (!existing) {
-    throw new AppError(404, 'Vaga não encontrada.', 'JOB_NOT_FOUND');
+    throw new AppError(404, 'Projeto não encontrado.', 'JOB_NOT_FOUND');
   }
   if (existing.companyId !== companyId) {
-    throw new AppError(403, 'Acesso negado. Esta vaga não pertence à sua empresa.', 'FORBIDDEN');
+    throw new AppError(403, 'Acesso negado. Este projeto não pertence à sua empresa.', 'FORBIDDEN');
   }
 
   const updated = await prisma.job.update({
@@ -476,10 +479,10 @@ export async function applyToJob(userId: string, jobId: string, dto: ApplyToJobD
   });
 
   if (!job) {
-    throw new AppError(404, 'Vaga não encontrada.', 'JOB_NOT_FOUND');
+    throw new AppError(404, 'Projeto não encontrado.', 'JOB_NOT_FOUND');
   }
   if (job.status !== 'OPEN' || !job.isActive || job.isFilled || job.expiresAt <= new Date()) {
-    throw new AppError(409, 'Esta vaga não aceita novas candidaturas.', 'JOB_NOT_AVAILABLE');
+    throw new AppError(409, 'Este projeto não aceita novas candidaturas.', 'JOB_NOT_AVAILABLE');
   }
 
   const user = await prisma.user.findUnique({
@@ -494,12 +497,14 @@ export async function applyToJob(userId: string, jobId: string, dto: ApplyToJobD
     throw new AppError(403, 'Seu usuário está inativo ou bloqueado.', 'USER_NOT_ALLOWED');
   }
 
+  await assertCanApply(userId);
+
   const existing = await prisma.application.findUnique({
     where: { userId_jobId: { userId, jobId } },
     select: { id: true },
   });
   if (existing) {
-    throw new AppError(409, 'Você já se candidatou para esta vaga.', 'APPLICATION_ALREADY_EXISTS');
+    throw new AppError(409, 'Você já se candidatou para este projeto.', 'APPLICATION_ALREADY_EXISTS');
   }
 
   const resumeUrl = dto.resumeUrl ?? user.resumeUrl;
@@ -532,7 +537,7 @@ export async function applyToJob(userId: string, jobId: string, dto: ApplyToJobD
   await createNotificationForCompany({
     companyId: job.companyId,
     type: 'NEW_APPLICATION',
-    content: 'Você recebeu uma nova candidatura em uma vaga.',
+    content: 'Você recebeu uma nova candidatura em um projeto.',
     data: {
       applicationId: application.id,
       jobId: job.id,
@@ -549,10 +554,10 @@ export async function getJobApplications(companyId: string, jobId: string, query
   });
 
   if (!job) {
-    throw new AppError(404, 'Vaga não encontrada.', 'JOB_NOT_FOUND');
+    throw new AppError(404, 'Projeto não encontrado.', 'JOB_NOT_FOUND');
   }
   if (job.companyId !== companyId) {
-    throw new AppError(403, 'Acesso negado. Esta vaga não pertence à sua empresa.', 'FORBIDDEN');
+    throw new AppError(403, 'Acesso negado. Este projeto não pertence à sua empresa.', 'FORBIDDEN');
   }
 
   const applications = await prisma.application.findMany({
@@ -627,16 +632,16 @@ export async function updateJobStatus(companyId: string, jobId: string, dto: Upd
   });
 
   if (!existing) {
-    throw new AppError(404, 'Vaga não encontrada.', 'JOB_NOT_FOUND');
+    throw new AppError(404, 'Projeto não encontrado.', 'JOB_NOT_FOUND');
   }
   if (existing.companyId !== companyId) {
-    throw new AppError(403, 'Acesso negado. Esta vaga não pertence à sua empresa.', 'FORBIDDEN');
+    throw new AppError(403, 'Acesso negado. Este projeto não pertence à sua empresa.', 'FORBIDDEN');
   }
 
   const nextStatus = dto.status as JobStatus;
   const currentStatus = existing.status as JobStatus;
   if (nextStatus === currentStatus) {
-    throw new AppError(409, 'A vaga já está neste status.', 'JOB_STATUS_ALREADY_SET');
+    throw new AppError(409, 'O projeto já está neste status.', 'JOB_STATUS_ALREADY_SET');
   }
 
   assertJobStatusTransition(currentStatus, nextStatus);
@@ -644,7 +649,7 @@ export async function updateJobStatus(companyId: string, jobId: string, dto: Upd
   if (nextStatus === 'OPEN' && (existing.isFilled || existing.expiresAt <= new Date())) {
     throw new AppError(
       409,
-      'Não é possível reabrir vaga preenchida ou expirada.',
+      'Não é possível reabrir projeto preenchido ou expirado.',
       'JOB_CANNOT_REOPEN',
     );
   }

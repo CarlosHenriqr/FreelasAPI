@@ -89,21 +89,46 @@ Documento de acompanhamento do que **ainda falta implementar** no backend para f
 - [x] Expor endpoints dedicados de matching para empresa e freelancer.
 - [ ] Persistir/reaproveitar score quando necessário (se virar requisito).
 
-## 10) Administração básica
-
-- [x] Definir papel admin no modelo de autenticação/autorização.
-- [x] Endpoints mínimos de moderação:
-  - usuários (listar, bloquear/desbloquear);
-  - vagas (listar, moderar/remover).
-
 ---
 
 ## Fora do escopo MVP (não implementar agora)
 
 - [ ] Pagamento real de anúncios
-- [ ] Assinaturas/planos pagos
+- [ ] Assinaturas/planos pagos (gateway + webhook)
 - [ ] Gateway/webhook financeiro
 - [ ] Reembolso/chargeback
+
+---
+
+## Planos — fase soft (implementado)
+
+Objetivo: preparar monetização por **volume e escala** sem paywall no fluxo principal do marketplace.
+
+### Regras de negócio
+
+- **Freelancer Free (default)**: perfil completo, 15 candidaturas/mês, até 10 vagas recomendadas por consulta.
+- **Freelancer Pro (simulado)**: 50 candidaturas/mês, destaque leve no matching (+5 pts no score, sem excluir free).
+- **Empresa Starter (default)**: 2 vagas ativas (OPEN + PAUSED), top 5 candidatos recomendados por vaga.
+- **Empresa Growth/Pro (simulado)**: 10 vagas ativas, top 20 candidatos por vaga.
+
+### O que nunca entra em plano pago
+
+- Cadastro, login, candidatura básica, publicação da 1ª vaga, notificações de status, avaliação pós-`COMPLETED`.
+
+### API
+
+| Método | Rota | Auth | Descrição |
+|--------|------|------|-----------|
+| GET | `/plans` | não | Catálogo público (`?audience=USER\|COMPANY`) |
+| GET | `/plans/me` | sim | Plano efetivo + uso atual |
+| POST | `/plans/mock-upgrade` | sim | Troca plano sem pagamento (TCC/dev) |
+
+Erro de limite: `403` + `code: PLAN_LIMIT_REACHED` + `details: { limit, current, planCode, metric, upgradeAudience }`.
+
+### Pendente (evolução)
+
+- [ ] Integração Stripe ou Mercado Pago
+- [ ] Webhooks de assinatura, cancelamento e grace period
 
 ---
 

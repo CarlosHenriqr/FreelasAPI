@@ -26,6 +26,13 @@ Pagamentos:
 - qualquer fluxo de pagamento (gateway, assinatura, webhook, cobrança real) está **fora do escopo do MVP**;
 - se necessário, tratar como mock, flag futura ou documentação de evolução.
 
+Planos (fase soft — implementado):
+- catálogos independentes para **freelancer** (`USER`: Free / Pro) e **empresa** (`COMPANY`: Starter / Growth);
+- limites no backend (`maxActiveJobs`, `maxApplicationsPerMonth`, caps de matching) com erro `PLAN_LIMIT_REACHED`;
+- plano default generoso no core: cadastro, perfil completo, 1ª vaga, candidatura básica e avaliações **sempre gratuitos**;
+- `GET /plans`, `GET /plans/me`, `POST /plans/mock-upgrade` (simulação TCC, sem cobrança);
+- upgrade real (Stripe/Mercado Pago) permanece evolução futura.
+
 ---
 
 ## 1. Autenticação e segurança
@@ -263,25 +270,7 @@ Exemplo:
 
 ---
 
-## 9. Administração básica
-
-### Diretriz de escopo
-- se existir perfil admin no projeto:
-  - listar usuários;
-  - bloquear/desbloquear usuários;
-  - listar vagas;
-  - remover/bloquear vaga inadequada;
-  - consultar métricas básicas.
-- se não existir:
-  - manter documentado como funcionalidade futura.
-
-### Estado atual do código
-- **Futuro/Fora do MVP atual do código**
-  - não há módulo admin dedicado com RBAC administrativo completo.
-
----
-
-## 10. Documentação da API para o front-end
+## 9. Documentação da API para o front-end
 
 Para cada endpoint, documentar:
 - método HTTP;
@@ -379,12 +368,6 @@ Notas:
 - `POST /reviews` | Auth: JWT | Perfil: freelancer/empresa com vínculo válido | Body: `targetId`, `applicationId`, `rating`, `comment` | Query: - | Sucesso: `201` | Erros: `401/403/404/409/422` | Status: esperado.
 - `GET /users/:id/reviews` | Auth: público | Perfil: público | Body: - | Query: paginação | Sucesso: `200` + avaliações | Erros: `404` | Status: esperado.
 
-#### Administração (se perfil admin existir)
-- `GET /admin/users` | Auth: JWT | Perfil: admin | Body: - | Query: filtros/paginação | Sucesso: `200` | Erros: `401/403` | Status: esperado.
-- `PATCH /admin/users/:id/block` | Auth: JWT | Perfil: admin | Body: motivo/período | Query: - | Sucesso: `200` | Erros: `401/403/404` | Status: esperado.
-- `GET /admin/jobs` | Auth: JWT | Perfil: admin | Body: - | Query: filtros/paginação | Sucesso: `200` | Erros: `401/403` | Status: esperado.
-- `PATCH /admin/jobs/:id/moderate` | Auth: JWT | Perfil: admin | Body: ação (`bloquear|remover`) | Query: - | Sucesso: `200` | Erros: `401/403/404` | Status: esperado.
-
 ### Exemplo de request/response (login)
 
 Request:
@@ -460,5 +443,5 @@ Recomendação:
 - **Comunicação**: parcial (base/modelo/rota, sem fluxo completo).
 - **Notificações**: parcial (modelo sem API completa).
 - **Avaliações**: pendente/parcial conforme planejamento.
-- **Administração**: futuro.
 - **Pagamentos**: fora do MVP (manter somente como evolução/mock).
+- **Planos soft**: implementado — limites + UI de upgrade simulado; pagamento real pendente.

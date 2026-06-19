@@ -22,7 +22,6 @@ model User {
   resumeUrl     String?
   bio           String?
   isActive      Boolean  @default(true)
-  isAdmin       Boolean  @default(false)
   isBlocked     Boolean  @default(false)
   loginAttempts Int      @default(0)
   blockedUntil  DateTime?
@@ -39,8 +38,8 @@ model User {
   applications  Application[]
   givenReviews  Review[] @relation("ReviewGivenByUser")
   receivedReviews Review[] @relation("ReviewReceivedByUser")
-  adminAuditLogs AdminAuditLog[]
   passwordResetCodes UserPasswordResetCode[]
+  subscription       UserSubscription?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -69,6 +68,7 @@ model Company {
   givenReviews Review[] @relation("ReviewGivenByCompany")
   receivedReviews Review[] @relation("ReviewReceivedByCompany")
   passwordResetCodes CompanyPasswordResetCode[]
+  subscription       CompanySubscription?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -368,22 +368,6 @@ model Review {
   @@map("reviews")
 }
 
-model AdminAuditLog {
-  id          String   @id @default(uuid())
-  adminUserId String
-  action      String
-  targetType  String
-  targetId    String
-  metadata    Json?
-  createdAt   DateTime @default(now())
-
-  adminUser   User     @relation(fields: [adminUserId], references: [id], onDelete: Cascade)
-
-  @@index([adminUserId, createdAt])
-  @@index([targetType, targetId, createdAt])
-  @@map("admin_audit_logs")
-}
-
 // ─── Experiências Profissionais (Perfil) ───────────────────────────────────────
 model UserExperience {
   id          String   @id @default(uuid())
@@ -419,4 +403,71 @@ model UserPortfolioItem {
 
   @@index([userId, createdAt])
   @@map("user_portfolio_items")
+}
+
+// ─── Planos (soft — sem gateway de pagamento no MVP) ─────────────────────────
+
+enum PlanAudience {
+  USER
+  COMPANY
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELLED
+}
+
+model Plan {
+  id          String       @id @default(uuid())
+  audience    PlanAudience
+  code        String
+  name        String
+  description String
+  priceLabel  String
+  limits      Json
+  sortOrder   Int          @default(0)
+  isActive    Boolean      @default(true)
+
+  userSubscriptions    UserSubscription[]
+  companySubscriptions CompanySubscription[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([audience, code])
+  @@map("plans")
+}
+
+model UserSubscription {
+  id        String             @id @default(uuid())
+  userId    String             @unique
+  user      User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  planId    String
+  plan      Plan               @relation(fields: [planId], references: [id])
+  status    SubscriptionStatus @default(ACTIVE)
+  startsAt  DateTime           @default(now())
+  endsAt    DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([planId])
+  @@map("user_subscriptions")
+}
+
+model CompanySubscription {
+  id        String             @id @default(uuid())
+  companyId String             @unique
+  company   Company            @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  planId    String
+  plan      Plan               @relation(fields: [planId], references: [id])
+  status    SubscriptionStatus @default(ACTIVE)
+  startsAt  DateTime           @default(now())
+  endsAt    DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([planId])
+  @@map("company_subscriptions")
 }

@@ -15,7 +15,7 @@ export async function getRecommendedCandidates(
 
     const jobId = req.params.jobId;
     if (!jobId) {
-      return next(new AppError(400, 'ID da vaga não informado.', 'MISSING_JOB_ID'));
+      return next(new AppError(400, 'ID do projeto não informado.', 'MISSING_JOB_ID'));
     }
 
     const query = matchingQuerySchema.parse(req.query);
@@ -40,7 +40,7 @@ export async function expressHiringInterest(
     const candidateUserId = req.params.userId;
 
     if (!jobId) {
-      return next(new AppError(400, 'ID da vaga não informado.', 'MISSING_JOB_ID'));
+      return next(new AppError(400, 'ID do projeto não informado.', 'MISSING_JOB_ID'));
     }
     if (!candidateUserId) {
       return next(new AppError(400, 'ID do candidato não informado.', 'MISSING_CANDIDATE_ID'));

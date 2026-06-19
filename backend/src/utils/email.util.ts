@@ -123,7 +123,7 @@ export async function sendApplicationAcceptedEmail(params: {
       text: [
         `Olá, ${params.userName}.`,
         '',
-        `A empresa ${params.companyName} aceitou sua candidatura para a vaga "${params.jobTitle}".`,
+        `A empresa ${params.companyName} aceitou sua candidatura para o projeto "${params.jobTitle}".`,
         '',
         contactText,
         '',
@@ -131,7 +131,7 @@ export async function sendApplicationAcceptedEmail(params: {
       ].join('\n'),
       html: `
         <p>Olá, <strong>${params.userName}</strong>.</p>
-        <p>A empresa <strong>${params.companyName}</strong> aceitou sua candidatura para a vaga <strong>${params.jobTitle}</strong>.</p>
+        <p>A empresa <strong>${params.companyName}</strong> aceitou sua candidatura para o projeto <strong>${params.jobTitle}</strong>.</p>
         <p>${contactHtml}</p>
         <p>Acesse a TASKIO para acompanhar seus trabalhos.</p>
       `,

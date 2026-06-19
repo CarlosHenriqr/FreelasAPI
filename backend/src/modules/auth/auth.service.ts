@@ -26,6 +26,10 @@ import type {
   CompanyLoginIdentifier,
 } from './auth.schema';
 import { parseUserLoginIdentifier, parseCompanyLoginIdentifier } from './auth.schema';
+import {
+  ensureDefaultCompanySubscription,
+  ensureDefaultUserSubscription,
+} from '../plans/plan.service';
 
 // ─── Tipos de resposta ────────────────────────────────────────────────────────
 
@@ -40,7 +44,7 @@ export type AuthResponse = AuthTokens & {
     name: string;
     email: string;
     type: 'user' | 'company';
-    role: 'user' | 'company' | 'admin';
+    role: 'user' | 'company';
   };
 };
 
@@ -76,6 +80,8 @@ export async function registerUser(dto: RegisterUserDTO): Promise<AuthResponse> 
   });
 
   const tokens = await _generateAndStoreUserTokens(user.id);
+
+  await ensureDefaultUserSubscription(user.id);
 
   return {
     ...tokens,
@@ -130,6 +136,8 @@ export async function registerCompany(dto: RegisterCompanyDTO): Promise<AuthResp
   });
 
   const tokens = await _generateAndStoreCompanyTokens(company.id);
+
+  await ensureDefaultCompanySubscription(company.id);
 
   return {
     ...tokens,
@@ -207,13 +215,17 @@ async function _loginUser(identifier: UserLoginIdentifier, password: string): Pr
     throw new AppError(401, 'Usuário ou senha inválidos.', 'INVALID_CREDENTIALS');
   }
 
-  // Login bem-sucedido: reseta contador de tentativas
-  await prisma.user.update({
-    where: { id: user.id },
-    data: { loginAttempts: 0, isBlocked: false, blockedUntil: null },
-  });
-
-  const tokens = await _generateAndStoreUserTokens(user.id, user.isAdmin);
+  // Login bem-sucedido: reseta contador apenas se necessário
+  const needsReset = user.loginAttempts > 0 || user.isBlocked;
+  const [tokens] = await Promise.all([
+    _generateAndStoreUserTokens(user.id),
+    needsReset
+      ? prisma.user.update({
+          where: { id: user.id },
+          data: { loginAttempts: 0, isBlocked: false, blockedUntil: null },
+        })
+      : Promise.resolve(),
+  ]);
 
   return {
     ...tokens,
@@ -222,7 +234,7 @@ async function _loginUser(identifier: UserLoginIdentifier, password: string): Pr
       name: user.name,
       email: user.email,
       type: 'user',
-      role: user.isAdmin ? 'admin' : 'user',
+      role: 'user',
     },
   };
 }
@@ -284,12 +296,16 @@ async function _loginCompany(identifier: CompanyLoginIdentifier, password: strin
     throw new AppError(401, 'Usuário ou senha inválidos.', 'INVALID_CREDENTIALS');
   }
 
-  await prisma.company.update({
-    where: { id: company.id },
-    data: { loginAttempts: 0, isBlocked: false, blockedUntil: null },
-  });
-
-  const tokens = await _generateAndStoreCompanyTokens(company.id);
+  const needsReset = company.loginAttempts > 0 || company.isBlocked;
+  const [tokens] = await Promise.all([
+    _generateAndStoreCompanyTokens(company.id),
+    needsReset
+      ? prisma.company.update({
+          where: { id: company.id },
+          data: { loginAttempts: 0, isBlocked: false, blockedUntil: null },
+        })
+      : Promise.resolve(),
+  ]);
 
   return {
     ...tokens,
@@ -321,7 +337,7 @@ export async function refreshTokens(dto: RefreshTokenDTO): Promise<AuthResponse>
     const tokens = await _generateAndStoreUserTokens(payload.sub);
     const user = await prisma.user.findUnique({
       where: { id: payload.sub },
-      select: { id: true, name: true, email: true, isAdmin: true, isActive: true },
+      select: { id: true, name: true, email: true, isActive: true },
     });
 
     if (!user || !user.isActive) {
@@ -335,7 +351,7 @@ export async function refreshTokens(dto: RefreshTokenDTO): Promise<AuthResponse>
         name: user.name,
         email: user.email,
         type: 'user',
-        role: user.isAdmin ? 'admin' : 'user',
+        role: 'user',
       },
     };
   }
@@ -764,28 +780,9 @@ async function _resetCompanyPasswordWithCode(dto: ResetPasswordWithCodeDTO): Pro
 
 // ─── Helpers privados ─────────────────────────────────────────────────────────
 
-async function _generateAndStoreUserTokens(
-  userId: string,
-  isAdmin?: boolean,
-): Promise<AuthTokens> {
-  let role: 'user' | 'admin' = 'user';
-
-  if (isAdmin !== undefined) {
-    role = isAdmin ? 'admin' : 'user';
-  } else {
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { isAdmin: true },
-    });
-
-    if (!user) {
-      throw new AppError(404, 'Usuário não encontrado.', 'USER_NOT_FOUND');
-    }
-
-    role = user.isAdmin ? 'admin' : 'user';
-  }
-  const accessToken = signAccessToken({ sub: userId, type: 'user', role });
-  const newRefreshToken = signRefreshToken({ sub: userId, type: 'user', role });
+async function _generateAndStoreUserTokens(userId: string): Promise<AuthTokens> {
+  const accessToken = signAccessToken({ sub: userId, type: 'user', role: 'user' });
+  const newRefreshToken = signRefreshToken({ sub: userId, type: 'user', role: 'user' });
 
   await prisma.userRefreshToken.create({
     data: {

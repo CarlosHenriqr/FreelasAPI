@@ -8,6 +8,7 @@ export class AppError extends Error {
     public readonly statusCode: number,
     message: string,
     public readonly code?: string,
+    public readonly details?: Record<string, unknown>,
   ) {
     super(message);
     this.name = 'AppError';
@@ -54,6 +55,7 @@ export function errorHandler(
       success: false,
       message: err.message,
       ...(err.code && { code: err.code }),
+      ...(err.details && { details: err.details }),
     });
     return;
   }

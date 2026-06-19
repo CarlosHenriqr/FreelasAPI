@@ -1,4 +1,5 @@
 import { prisma } from '../config/database';
+import { getProfileBoostWeights } from '../modules/plans/plan.service';
 
 export type MatchResult = {
   matchScore: number;
@@ -200,7 +201,15 @@ export async function recommendCandidates(
         matchedTechnologies: match.matchedTechnologies,
       };
     })
-    .filter((c) => c.matchScore > 0)
+    .filter((c) => c.matchScore > 0);
+
+  const boostWeights = await getProfileBoostWeights(candidates.map((c) => c.id));
+  const boostedCandidates = candidates
+    .map((candidate) => {
+      const boost = boostWeights.get(candidate.id) ?? 0;
+      const matchScore = Math.min(100, Math.round((candidate.matchScore + boost) * 100) / 100);
+      return { ...candidate, matchScore };
+    })
     .sort((a, b) => b.matchScore - a.matchScore)
     .slice(0, limit);
 
@@ -209,7 +218,7 @@ export async function recommendCandidates(
       isActive: true,
       isBlocked: false,
       resumeUrl: { not: null },
-      id: { notIn: candidates.map((c) => c.id) },
+      id: { notIn: boostedCandidates.map((c) => c.id) },
     },
     select: {
       id: true,
@@ -218,11 +227,11 @@ export async function recommendCandidates(
       avatarUrl: true,
       resumeUrl: true,
     },
-    take: Math.max(0, limit - candidates.length),
+    take: Math.max(0, limit - boostedCandidates.length),
     orderBy: { createdAt: 'desc' },
   });
 
-  candidates.push(
+  boostedCandidates.push(
     ...usersWithoutStack.map((u) => ({
       ...u,
       matchScore: 0,
@@ -230,7 +239,7 @@ export async function recommendCandidates(
     })),
   );
 
-  return candidates;
+  return boostedCandidates;
 }
 
 export async function recommendJobsForUser(userId: string, limit = 20): Promise<RecommendedJob[]> {

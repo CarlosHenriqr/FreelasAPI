@@ -10,14 +10,21 @@ O FreelasAPI **já usa Prisma**. Não é necessário rodar `prisma init` de novo
 | `prisma/schema.prisma` | `url` + `directUrl` para Supabase |
 | Variáveis | `DATABASE_URL` e `DIRECT_URL` no `.env` |
 
-### Formato das URLs (projeto `ssxygfazpdsywavsfrkc`)
+### Formato das URLs (projeto **Taskio** `otoyxzygsehrnlaslyuf`, região `us-west-2`)
 
-Copie de **Supabase Dashboard → Project Settings → Database** e substitua `[YOUR-PASSWORD]`:
+Copie de **Supabase Dashboard → Project Settings → Database → Connection string** e substitua `[YOUR-PASSWORD]`:
 
 ```env
-DATABASE_URL="postgresql://postgres.ssxygfazpdsywavsfrkc:[YOUR-PASSWORD]@aws-1-us-east-1.pooler.supabase.com:6543/postgres?pgbouncer=true"
-DIRECT_URL="postgresql://postgres.ssxygfazpdsywavsfrkc:[YOUR-PASSWORD]@aws-1-us-east-1.pooler.supabase.com:5432/postgres"
+# Runtime (API / Prisma Client) — Transaction pooler, porta 6543
+DATABASE_URL="postgresql://postgres.otoyxzygsehrnlaslyuf:[YOUR-PASSWORD]@aws-1-us-west-2.pooler.supabase.com:6543/postgres?pgbouncer=true&sslmode=require"
+
+# Migrações (prisma migrate) — Session pooler, porta 5432
+DIRECT_URL="postgresql://postgres.otoyxzygsehrnlaslyuf:[YOUR-PASSWORD]@aws-1-us-west-2.pooler.supabase.com:5432/postgres?sslmode=require"
 ```
+
+> **Não use** `db.otoyxzygsehrnlaslyuf.supabase.co` na `DIRECT_URL` se der P1001 no Windows (DNS/IPv6). Use sempre o **Session pooler** na porta **5432**.
+
+> **Não coloque** a porta 5432 na `DATABASE_URL` — ela é só para `DIRECT_URL`. Runtime usa **6543** + `pgbouncer=true`.
 
 > Este projeto usa **`.env`** (não `.env.local`). O `dotenv` carrega `.env` ao iniciar a API.
 
@@ -43,9 +50,14 @@ Template sem senha: `.env.example`
 | `DATABASE_URL` | **6543** + `?pgbouncer=true` | API / Prisma Client |
 | `DIRECT_URL` | **5432** (Session pooler) | `prisma migrate` |
 
-### Erro P1001 (Can't reach db.*.supabase.co)
+### Erro P1001 (Can't reach database server)
 
-Rede sem IPv6 ou firewall: use **Session pooler** na `DIRECT_URL` (porta 5432), não o host `db.xxx.supabase.co`.
+Causas comuns neste projeto:
+
+1. **`DATABASE_URL` na porta errada** — se estiver em `5432`, troque runtime para **6543** + `pgbouncer=true`.
+2. **Host `db.*.supabase.co`** — rede sem IPv6 no Windows; use Session pooler (`aws-1-us-west-2.pooler.supabase.com:5432`) na `DIRECT_URL`.
+3. **Conexão intermitente** da rede local ao pooler — tente de novo, use VPN off/on, ou rode `npx prisma migrate deploy` no **Render** (preDeploy), onde a conexão costuma ser estável.
+4. **Senha com caracteres especiais** — faça URL-encode na connection string ou resete a senha no dashboard.
 
 ---
 

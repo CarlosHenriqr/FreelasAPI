@@ -14,7 +14,7 @@ export async function authorizeJobOwner(
   const jobId = req.params.id ?? req.params.jobId;
 
   if (!jobId) {
-    return next(new AppError(400, 'ID da vaga não fornecido.', 'MISSING_JOB_ID'));
+    return next(new AppError(400, 'ID do projeto não fornecido.', 'MISSING_JOB_ID'));
   }
 
   const job = await prisma.job.findUnique({
@@ -23,11 +23,11 @@ export async function authorizeJobOwner(
   });
 
   if (!job) {
-    return next(new AppError(404, 'Vaga não encontrada.', 'JOB_NOT_FOUND'));
+    return next(new AppError(404, 'Projeto não encontrado.', 'JOB_NOT_FOUND'));
   }
 
   if (job.companyId !== req.auth.sub) {
-    return next(new AppError(403, 'Acesso negado. Você não é o proprietário desta vaga.', 'FORBIDDEN'));
+    return next(new AppError(403, 'Acesso negado. Você não é o proprietário deste projeto.', 'FORBIDDEN'));
   }
 
   next();

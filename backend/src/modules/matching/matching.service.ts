@@ -1,6 +1,10 @@
 import { prisma } from '../../config/database';
 import { AppError } from '../../middlewares/errorHandler.middleware';
 import { createNotificationForUser } from '../notifications/notification.service';
+import {
+  getMatchingCandidateLimit,
+  getMatchingJobLimit,
+} from '../plans/plan.service';
 import { recommendCandidates, recommendJobsForUser } from '../../utils/recommendation.util';
 import type { MatchingQueryDTO } from './matching.schema';
 
@@ -15,16 +19,17 @@ export async function getRecommendedCandidates(
   });
 
   if (!job) {
-    throw new AppError(404, 'Vaga não encontrada.', 'JOB_NOT_FOUND');
+    throw new AppError(404, 'Projeto não encontrado.', 'JOB_NOT_FOUND');
   }
   if (job.companyId !== companyId) {
-    throw new AppError(403, 'Acesso negado. Esta vaga não pertence à sua empresa.', 'FORBIDDEN');
+    throw new AppError(403, 'Acesso negado. Este projeto não pertence à sua empresa.', 'FORBIDDEN');
   }
   if (job.status === 'CANCELLED') {
-    throw new AppError(409, 'Não há matching para vaga cancelada.', 'JOB_NOT_AVAILABLE_FOR_MATCHING');
+    throw new AppError(409, 'Não há matching para projeto cancelado.', 'JOB_NOT_AVAILABLE_FOR_MATCHING');
   }
 
-  const candidates = await recommendCandidates(jobId, query.limit);
+  const effectiveLimit = await getMatchingCandidateLimit(companyId, query.limit);
+  const candidates = await recommendCandidates(jobId, effectiveLimit);
   return candidates;
 }
 
@@ -41,7 +46,8 @@ export async function getRecommendedJobs(userId: string, query: MatchingQueryDTO
     throw new AppError(403, 'Seu usuário está inativo ou bloqueado.', 'USER_NOT_ALLOWED');
   }
 
-  const jobs = await recommendJobsForUser(userId, query.limit);
+  const effectiveLimit = await getMatchingJobLimit(userId, query.limit);
+  const jobs = await recommendJobsForUser(userId, effectiveLimit);
   return jobs;
 }
 
@@ -62,10 +68,10 @@ export async function expressHiringInterest(
   });
 
   if (!job) {
-    throw new AppError(404, 'Vaga não encontrada.', 'JOB_NOT_FOUND');
+    throw new AppError(404, 'Projeto não encontrado.', 'JOB_NOT_FOUND');
   }
   if (job.companyId !== companyId) {
-    throw new AppError(403, 'Acesso negado. Esta vaga não pertence à sua empresa.', 'FORBIDDEN');
+    throw new AppError(403, 'Acesso negado. Este projeto não pertence à sua empresa.', 'FORBIDDEN');
   }
   if (job.status !== 'OPEN') {
     throw new AppError(

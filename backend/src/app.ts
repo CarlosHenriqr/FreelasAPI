@@ -11,7 +11,7 @@ import applicationRoutes from './modules/applications/application.routes';
 import notificationRoutes from './modules/notifications/notification.routes';
 import reviewRoutes from './modules/reviews/review.routes';
 import matchingRoutes from './modules/matching/matching.routes';
-import adminRoutes from './modules/admin/admin.routes';
+import planRoutes from './modules/plans/plan.routes';
 import { errorHandler } from './middlewares/errorHandler.middleware';
 import { isAllowedCorsOrigin } from './config/cors';
 
@@ -61,7 +61,7 @@ app.use('/applications', applicationRoutes);
 app.use('/notifications', notificationRoutes);
 app.use('/reviews', reviewRoutes);
 app.use('/matching', matchingRoutes);
-app.use('/admin', adminRoutes);
+app.use('/plans', planRoutes);
 
 // Health check simples
 app.get('/health', (_req, res) => {

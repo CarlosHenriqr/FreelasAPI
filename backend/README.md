@@ -9,8 +9,6 @@ O projeto atende o MVP com dois perfis principais:
 - **Freelancer** (`user`)
 - **Empresa / contratante** (`company`)
 
-Também possui papel **admin** (`role=admin`) para moderação básica.
-
 ## Stack técnica
 
 - **Node.js** + **TypeScript**
@@ -58,10 +56,6 @@ Também possui papel **admin** (`role=admin`) para moderação básica.
 - Matching:
   - vagas recomendadas para freelancer
   - candidatos recomendados para empresa
-- Administração básica:
-  - listar, bloquear e desbloquear usuários/empresas
-  - listar e moderar/remover vagas
-  - trilha de auditoria mínima (`admin_audit_logs`)
 
 ## Estrutura
 
@@ -81,7 +75,7 @@ backend/
 │   │   ├── notifications/
 │   │   ├── reviews/
 │   │   ├── matching/
-│   │   ├── admin/
+│   │   ├── plans/
 │   │   └── technologies/
 │   ├── utils/
 │   ├── app.ts

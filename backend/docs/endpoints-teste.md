@@ -523,48 +523,7 @@ curl -X GET "http://localhost:3333/matching/jobs/<JOB_ID>/candidates?limit=20" \
 
 ---
 
-## 11) Administração básica
-
-As rotas exigem `role=admin` no JWT (usuário admin).
-
-### GET `/admin/users`
-
-```bash
-curl -X GET "http://localhost:3333/admin/users?type=user&page=1&limit=20" \
-  -H "Authorization: Bearer <ADMIN_ACCESS_TOKEN>"
-```
-
-### PATCH `/admin/users/:id/block`
-
-```bash
-curl -X PATCH "http://localhost:3333/admin/users/<TARGET_ID>/block?type=user" \
-  -H "Authorization: Bearer <ADMIN_ACCESS_TOKEN>"
-```
-
-### PATCH `/admin/users/:id/unblock`
-
-```bash
-curl -X PATCH "http://localhost:3333/admin/users/<TARGET_ID>/unblock?type=user" \
-  -H "Authorization: Bearer <ADMIN_ACCESS_TOKEN>"
-```
-
-### GET `/admin/jobs`
-
-```bash
-curl -X GET "http://localhost:3333/admin/jobs?page=1&limit=20" \
-  -H "Authorization: Bearer <ADMIN_ACCESS_TOKEN>"
-```
-
-### PATCH `/admin/jobs/:id/moderate-remove`
-
-```bash
-curl -X PATCH "http://localhost:3333/admin/jobs/<JOB_ID>/moderate-remove" \
-  -H "Authorization: Bearer <ADMIN_ACCESS_TOKEN>"
-```
-
----
-
-## 12) Ordem recomendada de teste (smoke)
+## 11) Ordem recomendada de teste (smoke)
 
 1. `GET /health`
 2. cadastro freelancer + empresa
