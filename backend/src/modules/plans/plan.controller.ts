@@ -32,7 +32,7 @@ export async function mockUpgrade(req: Request, res: Response, next: NextFunctio
 
     res.status(200).json({
       status: 'success',
-      message: 'Plano atualizado (simulação — sem cobrança).',
+      message: 'Assinatura ativada com sucesso.',
       data,
     });
   } catch (err) {
