@@ -40,6 +40,29 @@ export async function mockUpgrade(req: Request, res: Response, next: NextFunctio
   }
 }
 
+export async function cancelSubscription(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    if (!req.auth) {
+      return next(new AppError(401, 'Não autenticado.', 'UNAUTHORIZED'));
+    }
+
+    const audience = req.auth.type === 'company' ? 'COMPANY' : 'USER';
+    const data = await PlanService.cancelSubscription(audience, req.auth.sub);
+
+    res.status(200).json({
+      status: 'success',
+      message: 'Assinatura cancelada. Você voltou ao plano grátis.',
+      data,
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
 export async function listPlans(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const query = listPlansQuerySchema.parse(req.query);

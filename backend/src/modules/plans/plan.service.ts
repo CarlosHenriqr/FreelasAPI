@@ -317,6 +317,29 @@ export async function mockUpgrade(
   return getPlanMeForCompany(accountId);
 }
 
+export async function cancelSubscription(
+  audience: PlanAudience,
+  accountId: string,
+): Promise<PlanMeResponse> {
+  const plan = await findPlanByAudienceCode(audience, getDefaultPlanCode(audience));
+
+  if (audience === 'USER') {
+    await ensureDefaultUserSubscription(accountId);
+    await prisma.userSubscription.update({
+      where: { userId: accountId },
+      data: { planId: plan.id, status: 'ACTIVE', endsAt: null },
+    });
+    return getPlanMeForUser(accountId);
+  }
+
+  await ensureDefaultCompanySubscription(accountId);
+  await prisma.companySubscription.update({
+    where: { companyId: accountId },
+    data: { planId: plan.id, status: 'ACTIVE', endsAt: null },
+  });
+  return getPlanMeForCompany(accountId);
+}
+
 export async function listPublicPlans(audience: PlanAudience) {
   const plans = await prisma.plan.findMany({
     where: { audience, isActive: true },
