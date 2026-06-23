@@ -13,6 +13,9 @@ import type {
   ExperienceDTO,
   PortfolioItemDTO,
 } from './profile.schema';
+import {
+  getUserReviewSummaryByUserId,
+} from '../reviews/review.service';
 
 export async function getUserProfile(userId: string) {
   const user = await prisma.user.findUnique({
@@ -99,7 +102,9 @@ export async function getPublicUserProfile(userId: string) {
     throw new AppError(404, 'Freelancer não encontrado.', 'USER_NOT_FOUND');
   }
 
-  return user;
+  const reviewSummary = await getUserReviewSummaryByUserId(userId);
+
+  return { ...user, reviewSummary };
 }
 
 export async function updateUserProfile(userId: string, dto: UpdateUserProfileDTO) {

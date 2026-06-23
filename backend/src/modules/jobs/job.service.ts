@@ -4,6 +4,7 @@ import { AppError } from '../../middlewares/errorHandler.middleware';
 import { createNotificationForCompany } from '../notifications/notification.service';
 import { assertCanCreateJob, assertCanApply } from '../plans/plan.service';
 import { computeApplicantMatchScores } from '../../utils/recommendation.util';
+import { getCompanyReviewSummariesMap } from '../reviews/review.service';
 import type {
   ApplyToJobDTO,
   CreateJobDTO,
@@ -17,6 +18,28 @@ type JobStatus = 'OPEN' | 'PAUSED' | 'CLOSED' | 'CANCELLED';
 
 // Tempo de espera para um freelancer recusado poder se candidatar novamente à mesma vaga.
 const REAPPLY_AFTER_REJECTION_COOLDOWN_MS = 3 * 60 * 1000;
+
+export async function enrichJobsWithCompanyReviews<T extends { company?: { id: string } | null }>(jobs: T[]) {
+  const companyIds = jobs
+    .map((job) => job.company?.id)
+    .filter((id): id is string => Boolean(id));
+  const summaries = await getCompanyReviewSummariesMap(companyIds);
+
+  return jobs.map((job) => {
+    if (!job.company) return job;
+    const reviewSummary = summaries.get(job.company.id) ?? {
+      averageRating: 0,
+      totalReviews: 0,
+    };
+    return {
+      ...job,
+      company: {
+        ...job.company,
+        reviewSummary,
+      },
+    };
+  });
+}
 
 function formatCooldown(totalSeconds: number): string {
   const minutes = Math.floor(totalSeconds / 60);
@@ -227,7 +250,7 @@ export async function listJobs(query: ListJobsQueryDTO) {
     },
   });
 
-  return jobs;
+  return enrichJobsWithCompanyReviews(jobs);
 }
 
 const companyJobListSelect = {
@@ -318,7 +341,8 @@ export async function getJobById(jobId: string) {
     throw new AppError(404, 'Projeto não encontrado.', 'JOB_NOT_FOUND');
   }
 
-  return job;
+  const [enrichedJob] = await enrichJobsWithCompanyReviews([job]);
+  return enrichedJob;
 }
 
 export async function updateJob(companyId: string, jobId: string, dto: UpdateJobDTO) {

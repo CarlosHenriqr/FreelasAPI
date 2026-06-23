@@ -198,3 +198,81 @@ export async function getReviewSummary(actor: ReviewActor) {
     })),
   };
 }
+
+export async function getUserReviewSummaryByUserId(userId: string) {
+  const where = { reviewedType: 'USER' as const, reviewedUserId: userId };
+
+  const aggregate = await prisma.review.aggregate({
+    where,
+    _avg: { rating: true },
+    _count: { rating: true },
+  });
+
+  const distributionCounts = await prisma.$transaction(
+    [1, 2, 3, 4, 5].map((rating) =>
+      prisma.review.count({
+        where: {
+          ...where,
+          rating,
+        },
+      }),
+    ),
+  );
+
+  return {
+    averageRating: aggregate._avg.rating ?? 0,
+    totalReviews: aggregate._count.rating ?? 0,
+    distribution: distributionCounts.map((count, idx) => ({
+      rating: idx + 1,
+      count,
+    })),
+  };
+}
+
+export async function getCompanyReviewSummaryByCompanyId(companyId: string) {
+  const where = { reviewedType: 'COMPANY' as const, reviewedCompanyId: companyId };
+
+  const aggregate = await prisma.review.aggregate({
+    where,
+    _avg: { rating: true },
+    _count: { rating: true },
+  });
+
+  return {
+    averageRating: aggregate._avg.rating ?? 0,
+    totalReviews: aggregate._count.rating ?? 0,
+  };
+}
+
+export async function getCompanyReviewSummariesMap(companyIds: string[]) {
+  const uniqueIds = [...new Set(companyIds.filter(Boolean))];
+  const map = new Map<string, { averageRating: number; totalReviews: number }>();
+
+  for (const id of uniqueIds) {
+    map.set(id, { averageRating: 0, totalReviews: 0 });
+  }
+
+  if (uniqueIds.length === 0) {
+    return map;
+  }
+
+  const aggregates = await prisma.review.groupBy({
+    by: ['reviewedCompanyId'],
+    where: {
+      reviewedType: 'COMPANY',
+      reviewedCompanyId: { in: uniqueIds },
+    },
+    _avg: { rating: true },
+    _count: { rating: true },
+  });
+
+  for (const row of aggregates) {
+    if (!row.reviewedCompanyId) continue;
+    map.set(row.reviewedCompanyId, {
+      averageRating: row._avg.rating ?? 0,
+      totalReviews: row._count.rating ?? 0,
+    });
+  }
+
+  return map;
+}

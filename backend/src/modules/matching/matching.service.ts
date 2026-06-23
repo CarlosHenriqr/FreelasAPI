@@ -6,6 +6,7 @@ import {
   getMatchingJobLimit,
 } from '../plans/plan.service';
 import { recommendCandidates, recommendJobsForUser } from '../../utils/recommendation.util';
+import { enrichJobsWithCompanyReviews } from '../jobs/job.service';
 import type { MatchingQueryDTO } from './matching.schema';
 
 export async function getRecommendedCandidates(
@@ -48,7 +49,7 @@ export async function getRecommendedJobs(userId: string, query: MatchingQueryDTO
 
   const effectiveLimit = await getMatchingJobLimit(userId, query.limit);
   const jobs = await recommendJobsForUser(userId, effectiveLimit);
-  return jobs;
+  return enrichJobsWithCompanyReviews(jobs);
 }
 
 export async function expressHiringInterest(
