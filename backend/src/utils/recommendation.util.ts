@@ -89,6 +89,7 @@ export type RecommendedCandidate = {
   resumeUrl: string | null;
   matchScore: number;
   matchedTechnologies: string[];
+  isFeatured: boolean;
 };
 
 export type RecommendedJob = {
@@ -166,6 +167,7 @@ export async function recommendCandidates(
       ...u,
       matchScore: 0,
       matchedTechnologies: [],
+      isFeatured: false,
     }));
   }
 
@@ -199,18 +201,22 @@ export async function recommendCandidates(
         resumeUrl: user.resumeUrl,
         matchScore: match.matchScore,
         matchedTechnologies: match.matchedTechnologies,
+        isFeatured: false,
       };
     })
     .filter((c) => c.matchScore > 0);
 
   const boostWeights = await getProfileBoostWeights(candidates.map((c) => c.id));
+  // matchScore exibido permanece puramente técnico. O boost de plano (profileBoostWeight)
+  // influencia apenas a ordenação (rankScore) e a flag de destaque, sem inflar o match exibido.
+  const rankScoreOf = (candidate: RecommendedCandidate) =>
+    Math.min(100, candidate.matchScore + (boostWeights.get(candidate.id) ?? 0));
   const boostedCandidates = candidates
-    .map((candidate) => {
-      const boost = boostWeights.get(candidate.id) ?? 0;
-      const matchScore = Math.min(100, Math.round((candidate.matchScore + boost) * 100) / 100);
-      return { ...candidate, matchScore };
-    })
-    .sort((a, b) => b.matchScore - a.matchScore)
+    .map((candidate) => ({
+      ...candidate,
+      isFeatured: (boostWeights.get(candidate.id) ?? 0) > 0,
+    }))
+    .sort((a, b) => rankScoreOf(b) - rankScoreOf(a))
     .slice(0, limit);
 
   const usersWithoutStack = await prisma.user.findMany({
@@ -236,6 +242,7 @@ export async function recommendCandidates(
       ...u,
       matchScore: 0,
       matchedTechnologies: [],
+      isFeatured: false,
     })),
   );
 

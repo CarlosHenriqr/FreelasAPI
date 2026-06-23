@@ -15,6 +15,17 @@ import type {
 
 type JobStatus = 'OPEN' | 'PAUSED' | 'CLOSED' | 'CANCELLED';
 
+// Tempo de espera para um freelancer recusado poder se candidatar novamente à mesma vaga.
+const REAPPLY_AFTER_REJECTION_COOLDOWN_MS = 3 * 60 * 1000;
+
+function formatCooldown(totalSeconds: number): string {
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  if (minutes > 0 && seconds > 0) return `${minutes} min e ${seconds}s`;
+  if (minutes > 0) return `${minutes} min`;
+  return `${seconds}s`;
+}
+
 const JOB_STATUS_TRANSITIONS: Record<JobStatus, JobStatus[]> = {
   OPEN: ['PAUSED', 'CLOSED', 'CANCELLED'],
   PAUSED: ['OPEN', 'CLOSED', 'CANCELLED'],
@@ -499,14 +510,6 @@ export async function applyToJob(userId: string, jobId: string, dto: ApplyToJobD
 
   await assertCanApply(userId);
 
-  const existing = await prisma.application.findUnique({
-    where: { userId_jobId: { userId, jobId } },
-    select: { id: true },
-  });
-  if (existing) {
-    throw new AppError(409, 'Você já se candidatou para este projeto.', 'APPLICATION_ALREADY_EXISTS');
-  }
-
   const resumeUrl = dto.resumeUrl ?? user.resumeUrl;
   if (!resumeUrl) {
     throw new AppError(
@@ -516,23 +519,67 @@ export async function applyToJob(userId: string, jobId: string, dto: ApplyToJobD
     );
   }
 
-  const application = await prisma.application.create({
-    data: {
-      jobId,
-      userId,
-      resumeUrl,
-      coverLetter: dto.coverLetter ? sanitizeString(dto.coverLetter) : null,
-    },
-    select: {
-      id: true,
-      jobId: true,
-      userId: true,
-      status: true,
-      resumeUrl: true,
-      coverLetter: true,
-      createdAt: true,
-    },
+  const existing = await prisma.application.findUnique({
+    where: { userId_jobId: { userId, jobId } },
+    select: { id: true, status: true, updatedAt: true },
   });
+  // A constraint única (userId, jobId) mantém a linha mesmo após encerrar a candidatura.
+  // - CANCELLED (ação do próprio freelancer): reabre imediatamente.
+  // - REJECTED (decisão da empresa): reabre só após o cooldown, evitando reenvio insistente.
+  // - Demais status (em andamento/finalizado): continua bloqueado.
+  if (existing) {
+    const canReopen = existing.status === 'CANCELLED' || existing.status === 'REJECTED';
+    if (!canReopen) {
+      throw new AppError(409, 'Você já se candidatou para este projeto.', 'APPLICATION_ALREADY_EXISTS');
+    }
+    if (existing.status === 'REJECTED') {
+      const remainingMs =
+        REAPPLY_AFTER_REJECTION_COOLDOWN_MS - (Date.now() - existing.updatedAt.getTime());
+      if (remainingMs > 0) {
+        const remainingSeconds = Math.ceil(remainingMs / 1000);
+        throw new AppError(
+          429,
+          `Sua candidatura foi recusada recentemente. Tente novamente em ${formatCooldown(remainingSeconds)}.`,
+          'APPLICATION_REAPPLY_COOLDOWN',
+          { retryAfterSeconds: remainingSeconds },
+        );
+      }
+    }
+  }
+
+  const applicationSelect = {
+    id: true,
+    jobId: true,
+    userId: true,
+    status: true,
+    resumeUrl: true,
+    coverLetter: true,
+    createdAt: true,
+  } as const;
+
+  const coverLetter = dto.coverLetter ? sanitizeString(dto.coverLetter) : null;
+
+  const application = existing
+    ? await prisma.application.update({
+        where: { id: existing.id },
+        data: {
+          status: 'PENDING',
+          resumeUrl,
+          coverLetter,
+          companyCompletedAt: null,
+          userCompletedAt: null,
+        },
+        select: applicationSelect,
+      })
+    : await prisma.application.create({
+        data: {
+          jobId,
+          userId,
+          resumeUrl,
+          coverLetter,
+        },
+        select: applicationSelect,
+      });
 
   await createNotificationForCompany({
     companyId: job.companyId,
