@@ -2,6 +2,17 @@ export type PlanAudience = 'USER' | 'COMPANY';
 
 export type PlanCode = 'FREE' | 'PRO' | 'STARTER';
 
+export type BillingInterval = 'MONTHLY' | 'YEARLY';
+
+export type PlanPricing = {
+  monthly: { priceLabel: string };
+  annual?: {
+    priceLabel: string;
+    monthlyEquivalentLabel: string;
+    savingsLabel: string;
+  };
+};
+
 export type PlanLimits = {
   maxActiveJobs?: number | null;
   maxApplicationsPerMonth?: number | null;

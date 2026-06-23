@@ -28,7 +28,12 @@ export async function mockUpgrade(req: Request, res: Response, next: NextFunctio
 
     const dto = mockUpgradeSchema.parse(req.body);
     const audience = req.auth.type === 'company' ? 'COMPANY' : 'USER';
-    const data = await PlanService.mockUpgrade(audience, req.auth.sub, dto.targetCode);
+    const data = await PlanService.mockUpgrade(
+      audience,
+      req.auth.sub,
+      dto.targetCode,
+      dto.billingInterval,
+    );
 
     res.status(200).json({
       status: 'success',
@@ -55,7 +60,8 @@ export async function cancelSubscription(
 
     res.status(200).json({
       status: 'success',
-      message: 'Assinatura cancelada. Você voltou ao plano grátis.',
+      message:
+        'Renovação cancelada. Seu acesso ao plano pago continua até o fim do período contratado.',
       data,
     });
   } catch (err) {

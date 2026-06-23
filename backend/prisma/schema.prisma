@@ -417,6 +417,11 @@ enum SubscriptionStatus {
   CANCELLED
 }
 
+enum BillingInterval {
+  MONTHLY
+  YEARLY
+}
+
 model Plan {
   id          String       @id @default(uuid())
   audience    PlanAudience
@@ -424,6 +429,9 @@ model Plan {
   name        String
   description String
   priceLabel  String
+  annualPriceLabel              String?
+  annualMonthlyEquivalentLabel  String?
+  annualSavingsLabel            String?
   limits      Json
   sortOrder   Int          @default(0)
   isActive    Boolean      @default(true)
@@ -444,9 +452,11 @@ model UserSubscription {
   user      User               @relation(fields: [userId], references: [id], onDelete: Cascade)
   planId    String
   plan      Plan               @relation(fields: [planId], references: [id])
-  status    SubscriptionStatus @default(ACTIVE)
-  startsAt  DateTime           @default(now())
-  endsAt    DateTime?
+  status            SubscriptionStatus @default(ACTIVE)
+  billingInterval   BillingInterval    @default(MONTHLY)
+  cancelAtPeriodEnd Boolean            @default(false)
+  startsAt          DateTime           @default(now())
+  endsAt            DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -461,9 +471,11 @@ model CompanySubscription {
   company   Company            @relation(fields: [companyId], references: [id], onDelete: Cascade)
   planId    String
   plan      Plan               @relation(fields: [planId], references: [id])
-  status    SubscriptionStatus @default(ACTIVE)
-  startsAt  DateTime           @default(now())
-  endsAt    DateTime?
+  status            SubscriptionStatus @default(ACTIVE)
+  billingInterval   BillingInterval    @default(MONTHLY)
+  cancelAtPeriodEnd Boolean            @default(false)
+  startsAt          DateTime           @default(now())
+  endsAt            DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
